@@ -1,0 +1,26 @@
+{
+  "name": "ambisense",
+  "version": "1.0.0",
+  "description": "Phase 1 - Projet IFT3225",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anasys0x/AmbiSense.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/anasys0x/AmbiSense/issues"
+  },
+  "homepage": "https://github.com/anasys0x/AmbiSense#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
