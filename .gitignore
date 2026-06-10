@@ -139,5 +139,9 @@ dist
 # SvelteKit build / generate output
 .svelte-kit
 
+# idea file
+.idea/
+
+
 # end
 
