@@ -1,22 +1,22 @@
-import express from "express";
-import cors from "cors";
+require('dotenv').config();
+const express = require('express');
+const connectDB = require('./services/mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares globaux
-app.use(cors());
 app.use(express.json());
 
-// Route de test
-app.get("/", (req, res) => {
-  res.json({
-    message: "AmbiSense API - Phase 1",
-    status: "ok",
-  });
+app.get('/', (req, res) => {
+    res.send('Serveur AmbiSense opérationnel');
 });
 
-// Démarrage du serveur
 app.listen(PORT, () => {
-  console.log(`Serveur AmbiSense démarré sur http://localhost:${PORT}`);
+    console.log(`[AmbiSense] Serveur démarré sur http://localhost:${PORT}`);
+});
+
+
+connectDB().catch((err) => {
+    console.error('[AmbiSense] Échec connexion MongoDB: ', err.message);
+    process.exit(1);
 });
