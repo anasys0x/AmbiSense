@@ -14,7 +14,7 @@ connectDB().catch((err) => {
 // Mes uses
 app.use(express.json());
 app.use(require('./routes/devices'));
-
+app.use(require('./routes/measurements'));
 
 
 
