@@ -4,7 +4,7 @@ const auth = async (req, res, next) => {
     try{
         const apiKey = req.headers['x-api-key'];
         if (!apiKey) {
-            return res.status(401).send('Device non authentifié !');
+            return res.status(401).send('Veuillez inclure votre clé API dans le Header !');
         }
         const device = await Device.findOne({apiKey});
 
