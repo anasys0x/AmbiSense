@@ -17,10 +17,6 @@ const observationSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    timestamp: {
-        type: Date,
-        defaut: Date.now,
-    },
     receivedAt: {
         type: Date,
         default: Date.now,
