@@ -15,7 +15,11 @@ connectDB().catch((err) => {
 app.use(express.json());
 app.use(require('./routes/devices'));
 app.use(require('./routes/measurements'));
+<<<<<<< HEAD
 
+=======
+app.use(require('./routes/observations'));
+>>>>>>> 091bb1c (Ajout de la route observations)
 
 
 app.listen(PORT, () => {
