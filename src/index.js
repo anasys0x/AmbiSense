@@ -11,10 +11,12 @@ connectDB().catch((err) => {
     process.exit(1);
 });
 
-// Mes uses
+// Mes branchements
 app.use(express.json());
 app.use(require('./routes/devices'));
 app.use(require('./routes/measurements'));
+app.use(require('./routes/observations'))
+app.use(require('./routes/ambiance'))
 
 
 app.listen(PORT, () => {
