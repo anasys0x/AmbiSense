@@ -2,6 +2,7 @@ const Device = require('../models/Device');
 
 const auth = async (req, res, next) => {
     try{
+        // Header apiKey doit se nommer x-api-key !
         const apiKey = req.headers['x-api-key'];
         if (!apiKey) {
             return res.status(401).send('Veuillez inclure votre clé API dans le Header !');
