@@ -23,8 +23,7 @@ router.post('/devices', async (req, res) => {
 // READ
 router.get('/devices', async (req, res) => {
     try{
-        const devices = await
-            Device.find({}, {apiKey: 0, __v: 0}) // On masque la cle API par mesure de securité.
+        const devices = await Device.find({}, {apiKey: 0, __v: 0}) // On masque la cle API par mesure de securité.
         res.send(devices);
     } catch(err){
         res.status(500).send(err.message);
