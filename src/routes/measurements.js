@@ -8,7 +8,7 @@ router.post('/measurements', auth, async (req, res) => {
     try{
         const { type, value, location , timestamp} = req.body;
         if (!type || value === undefined || !location || !timestamp) {
-            return res.status(400).json("Champs 'type', 'value' ou 'location' manquant !");
+            return res.status(400).json("Un ou plusieurs champs manquant (type, value, timestamp ou location)");
         }
         const measurement = new Measurement({ type, value, location, timestamp, deviceId: req.device._id })
         await measurement.save();
