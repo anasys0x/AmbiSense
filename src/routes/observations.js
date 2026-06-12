@@ -14,7 +14,7 @@ router.post('/observations', auth, async (req, res) => {
         res.status(201).json(observations);
 
     } catch(err){
-      res.status(400).send(err.message);
+      res.status(400).json(err.message);
     }
 })
 
