@@ -39,7 +39,7 @@ router.get('/ambiance/:location/status', async (req,res) => {
         if(!measurement){
             return res.status(404).json({error: {code: 404, message: "Aucune donnée pour ce lieu"}})
         }
-        res.status(200).json({location: location, status: interpreter(measurement.value), value: measurement.value, timestamp: measurement.timestamp})
+        res.status(200).json({ data: { location, status: interpreter(measurement.value), value: measurement.value, timestamp: measurement.timestamp } })
 
     } catch(err){
         res.status(500).json({ error: {code: 500, message: err.message} });
@@ -59,7 +59,7 @@ router.get('/ambiance/:location/history', async (req, res) => {
         if (measurements.length === 0) {
             return res.status(404).json({ error: { code: 404, message: "Aucune donnée pour ce lieu" } });
         }
-        res.status(200).json({ location, measurements, count: measurements.length });
+        res.status(200).json({ data: measurements, meta: { location, count: measurements.length } });
     } catch(err) {
         res.status(500).json({ error: { code: 500, message: err.message } });
     }
