@@ -24,11 +24,13 @@ cd AmbiSense
 npm install
 ```
 
-Crée un fichier `.env` à la racine :
+Crée un fichier `.env` à la racine (voir `.env.example`) :
 
 ```env
-MONGO_URI=mongodb+srv://<username>:<password>@ambisense.mongodb.net/ambisense?appName=AmbiSense
-PORT=1234
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>?appName=AmbiSense
+PORT=3000
+REMOTE_ACCESS=http://<ip-du-telephone>
+API_KEY=<api-key-generee-par-POST-/devices>
 ```
 
 Lance le serveur :
@@ -38,34 +40,41 @@ npm run dev     # développement (nodemon)
 npm start       # production
 ```
 
+Lance le bridge (dans un terminal séparé) :
+
+```bash
+npm run bridge
+```
+
 ---
 
 ## Endpoints
 
 ### Gestion des devices
 
-| Méthode | Endpoint | Corps | Réponse |
-|---------|----------|-------|---------|
-| `POST` | `/devices` | `{ name, location }` | `201 + { id, apiKey }` |
-| `GET` | `/devices` | — | `200 + tableau` |
+| Méthode | Endpoint | Header | Corps | Réponse |
+|---------|----------|--------|-------|---------|
+| `POST` | `/devices` | — | `{ name, location }` | `201 + { data: { id, apiKey } }` |
+| `GET` | `/devices` | — | — | `200 + { data: [...], meta: { count } }` |
+| `GET` | `/devices/me` | `x-api-key` | — | `200 + { data: { id, name, location } }` |
 
 ### Collecte
 
 | Méthode | Endpoint | Header | Corps | Réponse |
 |---------|----------|--------|-------|---------|
-| `POST` | `/measurements` | `x-api-key` | `{ type, value, location, timestamp }` | `201 + document` |
-| `POST` | `/observations` | `x-api-key` | `{ location, proximity, vibe, notes }` | `201 + document` |
+| `POST` | `/measurements` | `x-api-key` | `{ type, value, location, timestamp }` | `201 + { data: document }` |
+| `POST` | `/observations` | `x-api-key` | `{ location, proximity, vibe, notes }` | `201 + { data: document }` |
 
 ### Sémantiques
 
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| `GET` | `/ambiance/:location/status` | Ambiance actuelle du lieu |
-| `GET` | `/ambiance/:location/history?last=3h` | Évolution par tranches de temps |
+| `GET` | `/ambiance/:location/status` | Dernière mesure et classification de l'ambiance |
+| `GET` | `/ambiance/:location/history?last=3h` | Évolution des mesures sur une période |
 | `GET` | `/ambiance/:location/quiet-hours` | Créneaux typiquement calmes |
 
-> Les routes `POST /measurements` et `POST /observations` requièrent un header `x-api-key` valide.  
-> `POST /devices` est public — obtenir une clé API ne nécessite pas d'authentification.
+> Les routes `POST /measurements`, `POST /observations` et `GET /devices/me` requièrent un header `x-api-key` valide.  
+> `POST /devices` est public et permet d'obtenir une clé API, ça ne nécessite pas d'authentification.
 
 ---
 
@@ -73,7 +82,75 @@ npm start       # production
 
 1. Enregistre ton device : `POST /devices { name, location }`
 2. Récupère l'`apiKey` dans la réponse
-3. Inclus-la dans chaque requête d'écriture POST: `x-api-key: <ta-clé>`
+3. Inclus-la dans chaque requête protégée : `x-api-key: <ta-clé>`
+
+---
+
+## Test avec Insomnia
+
+### 1. Créer un device
+`POST http://localhost:1234/devices`
+```json
+{ "name": "Insomnia", "location": "café-toré-et-fraction" }
+```
+![creer-un-device](screenshots/creer-un-device.png)
+
+Récupère l'`apiKey` dans la réponse, tu en auras besoin pour les étapes suivantes.
+
+### 2. Envoyer une mesure
+`POST http://localhost:1234/measurements`  
+Header : `x-api-key: <ta-clé>`
+
+```json
+
+{
+  "type": "Audio Amplitude",
+  "value": 52,
+  "location": "café-toré-et-fraction",
+  "timestamp": "2026-06-17T14:00:00.000Z"
+}
+```
+![envoyer-mesure](screenshots/envoyer-mesure.png)
+> [!NOTE]
+> N'OUBLIEZ PAS DE PLACER LA CLÉ API DANS LE HEADER (x-api-key)
+### 3. Envoyer une observation
+`POST http://localhost:1234/observations`  
+Header : `x-api-key: <ta-clé>`
+```json
+{
+  "location": "café-toré-et-fraction",
+  "proximity": "close",
+  "vibe": "noisy",
+  "notes": "Beaucoup d'étudiants, période d'examens"
+}
+```
+![envoyer-observation](screenshots/envoyer-observation.png)
+
+
+### 4. Consulter l'ambiance
+```
+GET http://localhost:1234/ambiance/café-toré-et-fraction/status
+GET http://localhost:1234/ambiance/café-toré-et-fraction/history?last=3
+GET http://localhost:1234/ambiance/café-toré-et-fraction/vibe
+```
+---
+
+### Quelques réponses d'ambiance
+
+![ambiance-status](screenshots/ambiance-status.png)
+![ambiance-history](screenshots/ambiance-history.png)
+
+
+
+
+## Bridge Phyphox
+
+Le bridge est un script autonome qui collecte les données audio depuis Phyphox et les envoie automatiquement au serveur toutes les 5 secondes.
+
+Au démarrage, il :
+1. Récupère le type de mesure depuis `REMOTE_ACCESS/config`
+2. Récupère la location du device depuis `GET /devices/me`
+3. Lance la collecte en boucle (chaque 5 secondes)
 
 ---
 
@@ -81,6 +158,8 @@ npm start       # production
 
 ```
 src/
+├── bridge/
+│   └── bridge.js
 ├── middlewares/
 │   └── auth.js
 ├── models/
@@ -88,9 +167,14 @@ src/
 │   ├── Measurement.js
 │   └── Observation.js
 ├── routes/
-│   └── devices.js
+│   ├── ambiance.js
+│   ├── devices.js
+│   ├── measurements.js
+│   └── observations.js
 ├── services/
 │   └── mongoose.js
+├── screenshots
+│   └──...png
 └── index.js
 ```
 
