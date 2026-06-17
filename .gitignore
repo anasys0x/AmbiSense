@@ -141,6 +141,9 @@ dist
 # idea file
 .idea/
 
+# Macbook hidden files
+.DS_Store
+
 
 # end
 
