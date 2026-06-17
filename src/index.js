@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
 const connectDB = require('./services/mongoose');
 
 
@@ -12,6 +13,7 @@ connectDB().catch((err) => {
 });
 
 // Mes branchements
+app.use(cors());
 app.use(express.json());
 app.use(require('./routes/devices'));
 app.use(require('./routes/measurements'));

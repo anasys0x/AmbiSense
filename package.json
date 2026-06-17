@@ -7,7 +7,7 @@
     "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/index.js",
-    "bridge":  "node src/bridge/bridge.js",
+    "bridge": "node src/bridge/bridge.js",
     "seed": "node scripts/seed.js"
   },
   "repository": {
@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/anasys0x/AmbiSense#readme",
   "dependencies": {
+    "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "mongoose": "^9.7.0",
