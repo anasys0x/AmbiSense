@@ -12,7 +12,7 @@ router.post('/measurements', auth, async (req, res) => {
         }
         const measurement = new Measurement({ type, value, location, timestamp, deviceId: req.device._id })
         await measurement.save();
-        res.status(201).json(measurement);
+        res.status(201).json({ data: measurement });
 
     } catch(err) {
         res.status(400).json({ error: {code: 400, message: err.message} })
