@@ -86,6 +86,30 @@ npm run bridge
 
 ---
 
+## Données de test (seed)
+
+Pour remplir la base avec un jeu de données de démonstration (sans avoir à brancher Phyphox), un script de seed est disponible :
+
+```bash
+npm run seed
+```
+
+Il crée :
+- **1 device** de test (`Seed Phone` à `Bibliothèque UdeM`) et affiche son `apiKey` dans la console ;
+- **96 mesures** réparties sur les 24 heures (sur 2 jours), avec des valeurs réalistes : calme la nuit, bruyant en journée ;
+- **3 observations** de démonstration.
+
+> Le script nettoie d'abord ses propres données précédentes (device `Seed Phone` et observations marquées `[SEED]`) avant de réinsérer : il est donc relançable sans créer de doublons.
+> Récupère l'`apiKey` affichée à la fin pour tester les routes protégées par `x-api-key`.
+
+Une fois la base remplie, les routes d'ambiance deviennent directement testables, par exemple :
+
+```
+GET /ambiance/Bibliothèque UdeM/quiet-hours
+```
+
+---
+
 ## Test avec Insomnia
 
 ### 1. Créer un device
