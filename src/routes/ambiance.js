@@ -28,6 +28,39 @@ const parseLastParam = (last) => {
     return new Date(Date.now() - hours * 3600000)
 }
 
+/*
+Fonction qui regroupe les mesures par heure de la journee (0 a 23),
+calcule la moyenne du bruit pour chaque heure, puis trie de la plus
+calme a la plus bruyante.
+ */
+const computeQuietHours = (measurements) => {
+    const groupes = {}; // { heure: [valeurs...] }
+
+    for (const m of measurements) {
+        const heure = new Date(m.timestamp).getHours();
+        if (!groupes[heure]) {
+            groupes[heure] = [];
+        }
+        groupes[heure].push(m.value);
+    }
+
+    const resultat = Object.keys(groupes).map((heure) => {
+        const valeurs = groupes[heure];
+        const moyenne = valeurs.reduce((a, b) => a + b, 0) / valeurs.length;
+        const averageValue = Math.round(moyenne * 100) / 100; // 2 decimales
+        return {
+            hour: Number(heure),
+            averageValue,
+            ambiance: interpreter(averageValue),
+            count: valeurs.length,
+        };
+    });
+
+    // Tri croissant : la plus calme en premier
+    resultat.sort((a, b) => a.averageValue - b.averageValue);
+    return resultat;
+}
+
 
 // READ
 
@@ -61,6 +94,27 @@ router.get('/ambiance/:location/history', async (req, res) => {
         }
         res.status(200).json({ data: measurements, meta: { location, count: measurements.length } });
     } catch(err) {
+        res.status(500).json({ error: { code: 500, message: err.message } });
+    }
+})
+
+router.get('/ambiance/:location/quiet-hours', async (req, res) => {
+    try {
+        const { location } = req.params;
+        const measurements = await Measurement.find({ location }, { value: 1, timestamp: 1, _id: 0 });
+        if (measurements.length === 0) {
+            return res.status(404).json({ error: { code: 404, message: "Aucune donnée pour ce lieu" } });
+        }
+        const quietHours = computeQuietHours(measurements);
+        res.status(200).json({
+            data: quietHours,
+            meta: {
+                location,
+                count: measurements.length,
+                quietest: quietHours[0],
+            },
+        });
+    } catch (err) {
         res.status(500).json({ error: { code: 500, message: err.message } });
     }
 })
