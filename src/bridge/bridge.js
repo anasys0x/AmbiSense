@@ -41,7 +41,11 @@ const startMeasurement = async () => {
     const type = config.title;
 
     setInterval(async () => {
-        const value = parseFloat( await fetchPhyphox().toFixed(2) ); // On prend que 2 decimal
+        const mesure = await fetchPhyphox();
+        if (mesure === undefined || mesure === null) {
+            return; // fetchPhyphox a deja loggue l'erreur, on saute ce cycle
+        }
+        const value = parseFloat(mesure.toFixed(2)); // On prend que 2 decimal
 
         const data = {
             type: type,
