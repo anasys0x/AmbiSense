@@ -5,7 +5,7 @@ const SERVER_URL_DEVICES = `http://localhost:${process.env.PORT || 3000}/devices
 
 const fetchPhyphox = async () => {
     try{
-        const response = await fetch(process.env.REMOTE_ACCESS);
+        const response = await fetch(`${process.env.REMOTE_ACCESS}/get?dB`);
         if (!response.ok) {
             throw new Error(`HTTP error ! Status: ${response.status}`);
         }
@@ -36,12 +36,15 @@ const startMeasurement = async () => {
     console.log("Démarrage de l'envoie des mesures.");
 
     const location = await myLocation();
+    const configResponse = await fetch(`${process.env.REMOTE_ACCESS}/config`);
+    const config = await configResponse.json();
+    const type = config.title;
 
     setInterval(async () => {
-        const value = await fetchPhyphox();
+        const value = parseFloat( await fetchPhyphox().toFixed(2) ); // On prend que 2 decimal
 
         const data = {
-            type: 'audio',
+            type: type,
             value,
             location,
             timestamp: new Date().toISOString()
