@@ -17,9 +17,17 @@ const observationSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    timestamp: {
+        type: Date,
+        default: Date.now,
+    },
     receivedAt: {
         type: Date,
         default: Date.now,
+    },
+    deviceId: {
+        type: String,
+        required: true,
     }
 });
 

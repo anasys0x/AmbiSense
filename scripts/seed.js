@@ -79,9 +79,9 @@ const seed = async () => {
 
         // 4) Quelques observations
         const observations = [
-            { location: SEED_LOCATION, proximity: 'near', vibe: 'calm',   notes: `${SEED_NOTE_PREFIX} Peu de personnes, ambiance calme` },
-            { location: SEED_LOCATION, proximity: 'near', vibe: 'focused', notes: `${SEED_NOTE_PREFIX} Période d'examens, salle pleine mais silencieuse` },
-            { location: SEED_LOCATION, proximity: 'far',  vibe: 'busy',    notes: `${SEED_NOTE_PREFIX} Beaucoup de mouvement en milieu de journée` },
+            { location: SEED_LOCATION, proximity: 'near', vibe: 'calm',   notes: `${SEED_NOTE_PREFIX} Peu de personnes, ambiance calme`,            deviceId: device._id.toString() },
+            { location: SEED_LOCATION, proximity: 'near', vibe: 'focused', notes: `${SEED_NOTE_PREFIX} Période d'examens, salle pleine mais silencieuse`, deviceId: device._id.toString() },
+            { location: SEED_LOCATION, proximity: 'far',  vibe: 'busy',    notes: `${SEED_NOTE_PREFIX} Beaucoup de mouvement en milieu de journée`,    deviceId: device._id.toString() },
         ];
         await Observation.insertMany(observations);
         console.log(`[seed] ${observations.length} observations insérées`);
