@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Measurement = require('../models/Measurement');
+const Observation = require('../models/Observation');
 
 // FUNCTIONS
 /*
@@ -113,6 +114,37 @@ router.get('/ambiance/:location/quiet-hours', async (req, res) => {
                 count: measurements.length,
                 quietest: quietHours[0],
             },
+        });
+    } catch (err) {
+        res.status(500).json({ error: { code: 500, message: err.message } });
+    }
+})
+
+router.get('/ambiance/:location/vibe', async (req, res) => {
+    try {
+        const { location } = req.params;
+        const observations = await Observation.find({ location }, { vibe: 1, proximity: 1, notes: 1, receivedAt: 1, _id: 0 })
+            .sort({ receivedAt: -1 })
+            .limit(10);
+
+        if (observations.length === 0) {
+            return res.status(404).json({ error: { code: 404, message: "Aucune observation pour ce lieu" } });
+        }
+
+        const count = (arr, key) => arr.reduce((acc, o) => {
+            acc[o[key]] = (acc[o[key]] || 0) + 1;
+            return acc;
+        }, {});
+
+        const dominant = (counts) => Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+
+        const dominantVibe = dominant(count(observations, 'vibe'));
+        const dominantProximity = dominant(count(observations, 'proximity'));
+        const lastNote = observations[0].notes;
+
+        res.status(200).json({
+            data: { location, dominantVibe, dominantProximity, lastNote },
+            meta: { basedOn: observations.length }
         });
     } catch (err) {
         res.status(500).json({ error: { code: 500, message: err.message } });
