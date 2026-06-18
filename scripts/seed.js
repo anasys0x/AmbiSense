@@ -8,7 +8,7 @@ const Observation = require('../src/models/Observation');
 
 // --- Configuration du seed -------------------------------------------------
 const SEED_DEVICE_NAME = 'Seed Phone';
-const SEED_LOCATION = 'Bibliothèque UdeM';
+const SEED_LOCATION = 'biblio_jb';
 const SEED_TYPE = 'audio_amplitude';
 const SEED_NOTE_PREFIX = '[SEED]'; // sert a reconnaitre nos observations de test
 const NB_JOURS = 2;                // on genere des donnees sur les 2 derniers jours

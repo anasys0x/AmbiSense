@@ -71,7 +71,8 @@ npm run bridge
 |---------|----------|-------------|
 | `GET` | `/ambiance/:location/status` | Dernière mesure et classification de l'ambiance |
 | `GET` | `/ambiance/:location/history?last=3h` | Évolution des mesures sur une période |
-| `GET` | `/ambiance/:location/quiet-hours` | Créneaux typiquement calmes |
+| `GET` | `/ambiance/:location/quiet-hours` | Créneaux typiquement calmes par heure de la journée |
+| `GET` | `/ambiance/:location/vibe` | Vibe dominante issue des observations humaines |
 
 > Les routes `POST /measurements`, `POST /observations` et `GET /devices/me` requièrent un header `x-api-key` valide.  
 > `POST /devices` est public et permet d'obtenir une clé API, ça ne nécessite pas d'authentification.
@@ -95,7 +96,7 @@ npm run seed
 ```
 
 Il crée :
-- **1 device** de test (`Seed Phone` à `Bibliothèque UdeM`) et affiche son `apiKey` dans la console ;
+- **1 device** de test (`Seed Phone` à `biblio_jb`) et affiche son `apiKey` dans la console ;
 - **96 mesures** réparties sur les 24 heures (sur 2 jours), avec des valeurs réalistes : calme la nuit, bruyant en journée ;
 - **3 observations** de démonstration.
 
@@ -105,7 +106,7 @@ Il crée :
 Une fois la base remplie, les routes d'ambiance deviennent directement testables, par exemple :
 
 ```
-GET /ambiance/Bibliothèque UdeM/quiet-hours
+GET /ambiance/biblio_jb/quiet-hours
 ```
 
 ---
@@ -152,17 +153,50 @@ Header : `x-api-key: <ta-clé>`
 
 
 ### 4. Consulter l'ambiance
-```
-GET http://localhost:1234/ambiance/café-toré-et-fraction/status
-GET http://localhost:1234/ambiance/café-toré-et-fraction/history?last=3
-GET http://localhost:1234/ambiance/café-toré-et-fraction/vibe
-```
----
 
-### Quelques réponses d'ambiance
+#### Status
+`GET http://localhost:1234/ambiance/café-toré-et-fraction/status`
 
 ![ambiance-status](screenshots/ambiance-status.png)
+
+#### History
+`GET http://localhost:1234/ambiance/café-toré-et-fraction/history?last=3`
+
 ![ambiance-history](screenshots/ambiance-history.png)
+
+#### Quiet-hours
+`GET http://localhost:1234/ambiance/biblio_jb/quiet-hours`
+
+```json
+{
+  "data": [
+    { "hour": 3, "averageValue": 32.5, "ambiance": "quiet", "count": 4 },
+    { "hour": 14, "averageValue": 61.2, "ambiance": "moderate", "count": 12 }
+  ],
+  "meta": {
+    "location": "biblio_jb",
+    "count": 96,
+    "quietest": { "hour": 3, "averageValue": 32.5, "ambiance": "quiet", "count": 4 }
+  }
+}
+```
+
+#### Vibe
+`GET http://localhost:1234/ambiance/café-toré-et-fraction/vibe`
+
+```json
+{
+  "data": {
+    "location": "café-toré-et-fraction",
+    "dominantVibe": "noisy",
+    "dominantProximity": "close",
+    "lastNote": "match de foot, ambiance très animée"
+  },
+  "meta": { "basedOn": 10 }
+}
+```
+
+---
 
 
 
