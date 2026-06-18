@@ -17,7 +17,7 @@ router.post('/devices', async (req, res) => {
         await device.save();
         res.status(201).json( {data: {id: device._id, apiKey}} );
     } catch(err){
-        res.status(400).json({ error: {code: 400, message: `Erreur lors de la creation de device: ${err.message}` }});
+        res.status(500).json({ error: {code: 500, message: err.message }});
     }
 })
 

@@ -15,7 +15,7 @@ router.post('/measurements', auth, async (req, res) => {
         res.status(201).json({ data: measurement });
 
     } catch(err) {
-        res.status(400).json({ error: {code: 400, message: err.message} })
+        res.status(500).json({ error: {code: 500, message: err.message} })
     }
 })
 

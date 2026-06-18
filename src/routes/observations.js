@@ -9,12 +9,12 @@ router.post('/observations', auth, async (req, res) => {
         if (!location || !proximity || !vibe || notes === undefined) {
             return res.status(400).json({error: {code: 400, message: "Champs 'location', 'proximity', vibe ou 'notes' manquant !"}})
         }
-        const observations = new Observation({ location, proximity, vibe, notes, timestamp, deviceId: req.device._id });
+        const observations = new Observation({ location, proximity, vibe, notes, timestamp });
         await observations.save();
         res.status(201).json({ data: observations });
 
     } catch(err){
-      res.status(400).json({ error: { code: 400, message: err.message } });
+      res.status(500).json({ error: { code: 500, message: err.message } });
     }
 })
 
