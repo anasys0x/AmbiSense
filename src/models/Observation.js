@@ -27,7 +27,6 @@ const observationSchema = new mongoose.Schema({
     },
     deviceId: {
         type: String,
-        required: true,
     }
 });
 
