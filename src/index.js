@@ -1,25 +1,14 @@
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+
+const app = require('./app');
 const connectDB = require('./services/mongoose');
 
-
-const app = express();
 const PORT = process.env.PORT || 3000;
-// Connection Mongo
-connectDB().catch((err) => {
-    console.error('[AmbiSense] Échec connexion MongoDB: ', err.message);
+
+connectDB().catch((error) => {
+    console.error('[AmbiSense] Échec de la connexion MongoDB :', error.message);
     process.exit(1);
 });
-
-// Mes branchements
-app.use(cors());
-app.use(express.json());
-app.use(require('./routes/devices'));
-app.use(require('./routes/measurements'));
-app.use(require('./routes/observations'))
-app.use(require('./routes/ambiance'))
-
 
 app.listen(PORT, () => {
     console.log(`[AmbiSense] Serveur démarré sur http://localhost:${PORT}`);

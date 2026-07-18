@@ -1,241 +1,146 @@
-![AmbiSense](https://github.com/anasys0x/AmbiSense/blob/main/AmbiSense.png)
+# AmbiSense
 
-<h1 align="center">AmbiSense</h1>
-
-<p align="center">
-  Serveur Express connecté à MongoDB Atlas qui collecte et expose des données d'ambiance (niveau sonore, observations) en quasi temps réel via une API REST authentifiée par clé API.
-</p>
-
----
+AmbiSense est le projet IFT3225 de collecte et de consultation d'ambiances sonores. La phase 2 poursuit le dépôt de la phase 1 : l'API Express/MongoDB demeure compatible avec les dispositifs de collecte et un client React permet maintenant de consulter la carte, les lieux et son compte, puis d'ajouter des observations.
 
 ## Prérequis
 
-- Node.js v18+
-- Un cluster MongoDB Atlas
-- Phyphox (application mobile pour la collecte audio)
-
----
+- Node.js 18 ou plus récent
+- MongoDB Atlas ou une instance MongoDB accessible
+- phyphox pour effectuer les collectes réelles
 
 ## Installation
 
+À la racine du dépôt :
+
 ```bash
-git clone https://github.com/anasys0x/AmbiSense.git
-cd AmbiSense
 npm install
+copy .env.example .env
 ```
 
-Crée un fichier `.env` à la racine (voir `.env.example`) :
+Configurer ensuite `.env` sans publier ses valeurs :
 
 ```env
-MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>?appName=AmbiSense
-PORT=3000
-REMOTE_ACCESS=http://<ip-du-telephone>
-API_KEY=<api-key-generee-par-POST-/devices>
+MONGO_URI=mongodb+srv://...
+PORT=1234
+JWT_SECRET=une-longue-valeur-aleatoire
+REMOTE_ACCESS=http://adresse-ip-du-telephone:8080
+API_KEY=cle-api-du-dispositif
 ```
 
-Lance le serveur :
+Installer le client :
 
 ```bash
-npm run dev     # développement (nodemon)
-npm start       # production
+cd client
+npm install
+copy .env.example .env
 ```
 
-Lance le bridge (dans un terminal séparé) :
+Le fichier `client/.env` doit pointer vers l'API :
+
+```env
+VITE_API_URL=http://localhost:1234
+```
+
+## Lancement
+
+Utiliser des terminaux séparés.
+
+API, depuis la racine :
+
+```bash
+npm run dev
+```
+
+Client React :
+
+```bash
+npm --prefix client run dev
+```
+
+Le client est normalement accessible sur `http://localhost:5173`.
+
+Pour une collecte phyphox, démarrer l'accès à distance dans l'application mobile, configurer `REMOTE_ACCESS` et `API_KEY`, puis lancer :
 
 ```bash
 npm run bridge
 ```
 
----
-
-## Endpoints
-
-### Gestion des devices
-
-| Méthode | Endpoint | Header | Corps | Réponse |
-|---------|----------|--------|-------|---------|
-| `POST` | `/devices` | — | `{ name, location }` | `201 + { data: { id, apiKey } }` |
-| `GET` | `/devices` | — | — | `200 + { data: [...], meta: { count } }` |
-| `GET` | `/devices/me` | `x-api-key` | — | `200 + { data: { id, name, location } }` |
-
-### Collecte
-
-| Méthode | Endpoint | Header | Corps | Réponse |
-|---------|----------|--------|-------|---------|
-| `POST` | `/measurements` | `x-api-key` | `{ type, value, location, timestamp }` | `201 + { data: document }` |
-| `POST` | `/observations` | `x-api-key` | `{ location, proximity, vibe, notes }` | `201 + { data: document }` |
-
-### Sémantiques
-
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| `GET` | `/ambiance/:location/status` | Dernière mesure et classification de l'ambiance |
-| `GET` | `/ambiance/:location/history?last=3h` | Évolution des mesures sur une période |
-| `GET` | `/ambiance/:location/quiet-hours` | Créneaux typiquement calmes par heure de la journée |
-| `GET` | `/ambiance/:location/vibe` | Vibe dominante issue des observations humaines |
-
-> Les routes `POST /measurements`, `POST /observations` et `GET /devices/me` requièrent un header `x-api-key` valide.  
-> `POST /devices` est public et permet d'obtenir une clé API, ça ne nécessite pas d'authentification.
-
----
-
 ## Authentification
 
-1. Enregistre ton device : `POST /devices { name, location }`
-2. Récupère l'`apiKey` dans la réponse
-3. Inclus-la dans chaque requête protégée : `x-api-key: <ta-clé>`
+Deux mécanismes coexistent :
 
----
+- `x-api-key` identifie un dispositif de collecte;
+- `Authorization: Bearer <jeton>` identifie un compte utilisateur.
 
-## Données de test (seed)
+Le JWT est créé par l'API lors de l'inscription ou de la connexion. Le client le conserve et l'envoie automatiquement pour les actions protégées. Il ne faut donc pas générer de JWT manuellement pour utiliser le frontend.
 
-Pour remplir la base avec un jeu de données de démonstration (sans avoir à brancher Phyphox), un script de seed est disponible :
+## Endpoints principaux
+
+| Méthode | Endpoint | Protection | Description |
+|---|---|---|---|
+| `POST` | `/devices` | Publique | Créer un dispositif et recevoir sa clé API |
+| `GET` | `/devices` | Publique | Lister les dispositifs sans exposer leurs clés |
+| `GET` | `/devices/me` | Clé API | Consulter le dispositif courant |
+| `POST` | `/measurements` | Clé API | Enregistrer une mesure sonore |
+| `POST` | `/observations` | Clé API ou JWT | Enregistrer une observation |
+| `GET` | `/ambiance/:location/status` | Publique | Lire l'ambiance actuelle et sa classification |
+| `GET` | `/ambiance/:location/history?last=3` | Publique | Lire les dernières heures de mesures |
+| `GET` | `/ambiance/:location/quiet-hours` | Publique | Calculer les heures généralement les plus calmes |
+| `GET` | `/ambiance/:location/vibe` | Publique | Résumer les dernières observations humaines |
+| `GET` | `/places` | Publique | Lister les lieux, coordonnées et ambiances |
+| `GET` | `/places/:slug` | Publique | Consulter le portrait d'un lieu |
+| `POST` | `/places` | Clé API | Ajouter un lieu avec ses coordonnées |
+| `POST` | `/users` | Publique | Créer un compte |
+| `POST` | `/users/login` | Publique | Se connecter |
+| `GET` | `/users/me` | JWT | Consulter le compte connecté |
+| `POST` | `/users/logout` | JWT | Se déconnecter |
+| `GET` | `/users/me/observations` | JWT | Consulter ses observations |
+
+Exemple d'ajout d'un lieu :
+
+```bash
+curl -X POST http://localhost:1234/places \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: VOTRE_CLE" \
+  -d '{"name":"Bibliotheque","slug":"bibliotheque","latitude":45.5017,"longitude":-73.5673}'
+```
+
+Le champ `name` doit être identique au champ `location` envoyé dans les mesures et observations afin que les données soient rattachées au bon lieu.
+
+## Données de démonstration
+
+Le script suivant ajoute un dispositif, des mesures réparties sur deux jours et quelques observations pour tester les écrans et les endpoints :
 
 ```bash
 npm run seed
 ```
 
-Il crée :
-- **1 device** de test (`Seed Phone` à `biblio_jb`) et affiche son `apiKey` dans la console ;
-- **96 mesures** réparties sur les 24 heures (sur 2 jours), avec des valeurs réalistes : calme la nuit, bruyant en journée ;
-- **3 observations** de démonstration.
+Ces données artificielles servent au développement. Elles ne remplacent pas les données réelles demandées pour la remise : au moins **12 nouvelles mesures réparties sur 3 lieux différents**, recueillies avec phyphox.
 
-> Le script nettoie d'abord ses propres données précédentes (device `Seed Phone` et observations marquées `[SEED]`) avant de réinsérer : il est donc relançable sans créer de doublons.
-> Récupère l'`apiKey` affichée à la fin pour tester les routes protégées par `x-api-key`.
+## Vérification
 
-Une fois la base remplie, les routes d'ambiance deviennent directement testables, par exemple :
-
-```
-GET /ambiance/biblio_jb/quiet-hours
+```bash
+npm test
+npm --prefix client test
+npm --prefix client run lint
+npm --prefix client run build
 ```
 
----
+## Structure
 
-## Test avec Insomnia
-
-### 1. Créer un device
-`POST http://localhost:1234/devices`
-```json
-{ "name": "Insomnia", "location": "café-toré-et-fraction" }
-```
-![creer-un-device](screenshots/creer-un-device.png)
-
-Récupère l'`apiKey` dans la réponse, tu en auras besoin pour les étapes suivantes.
-
-### 2. Envoyer une mesure
-`POST http://localhost:1234/measurements`  
-Header : `x-api-key: <ta-clé>`
-
-```json
-
-{
-  "type": "Audio Amplitude",
-  "value": 52,
-  "location": "café-toré-et-fraction",
-  "timestamp": "2026-06-17T14:00:00.000Z"
-}
-```
-![envoyer-mesure](screenshots/envoyer-mesure.png)
-> [!NOTE]
-> N'OUBLIEZ PAS DE PLACER LA CLÉ API DANS LE HEADER (x-api-key)
-### 3. Envoyer une observation
-`POST http://localhost:1234/observations`  
-Header : `x-api-key: <ta-clé>`
-```json
-{
-  "location": "café-toré-et-fraction",
-  "proximity": "close",
-  "vibe": "noisy",
-  "notes": "Beaucoup d'étudiants, période d'examens"
-}
-```
-![envoyer-observation](screenshots/envoyer-observation.png)
-
-
-### 4. Consulter l'ambiance
-
-#### Status
-`GET http://localhost:1234/ambiance/café-toré-et-fraction/status`
-
-![ambiance-status](screenshots/ambiance-status.png)
-
-#### History
-`GET http://localhost:1234/ambiance/café-toré-et-fraction/history?last=3`
-
-![ambiance-history](screenshots/ambiance-history.png)
-
-#### Quiet-hours
-`GET http://localhost:1234/ambiance/biblio_jb/quiet-hours`
-
-```json
-{
-  "data": [
-    { "hour": 3, "averageValue": 32.5, "ambiance": "quiet", "count": 4 },
-    { "hour": 14, "averageValue": 61.2, "ambiance": "moderate", "count": 12 }
-  ],
-  "meta": {
-    "location": "biblio_jb",
-    "count": 96,
-    "quietest": { "hour": 3, "averageValue": 32.5, "ambiance": "quiet", "count": 4 }
-  }
-}
-```
-
-#### Vibe
-`GET http://localhost:1234/ambiance/café-toré-et-fraction/vibe`
-
-```json
-{
-  "data": {
-    "location": "café-toré-et-fraction",
-    "dominantVibe": "noisy",
-    "dominantProximity": "close",
-    "lastNote": "match de foot, ambiance très animée"
-  },
-  "meta": { "basedOn": 10 }
-}
-```
-
----
-
-
-
-
-## Bridge Phyphox
-
-Le bridge est un script autonome qui collecte les données audio depuis Phyphox et les envoie automatiquement au serveur toutes les 5 secondes.
-
-Au démarrage, il :
-1. Récupère le type de mesure depuis `REMOTE_ACCESS/config`
-2. Récupère la location du device depuis `GET /devices/me`
-3. Lance la collecte en boucle (chaque 5 secondes)
-
----
-
-## Structure du projet
-
-```
+```text
 src/
-├── bridge/
-│   └── bridge.js
-├── middlewares/
-│   └── auth.js
-├── models/
-│   ├── Device.js
-│   ├── Measurement.js
-│   └── Observation.js
-├── routes/
-│   ├── ambiance.js
-│   ├── devices.js
-│   ├── measurements.js
-│   └── observations.js
-├── services/
-│   └── mongoose.js
-├── screenshots
-│   └──...png
-└── index.js
+  bridge/          liaison avec phyphox
+  middlewares/     authentification des dispositifs et utilisateurs
+  models/          modèles Mongoose
+  routes/          endpoints Express
+  services/        connexion MongoDB et classification
+scripts/           données de démonstration
+tests/             tests de l'API
+client/src/
+  components/      composants React réutilisables
+  context/         authentification partagée
+  hooks/           chargement des données
+  pages/           écrans de l'application
+  services/        appels vers l'API
 ```
-
----
-
-## IFT3225 — Phase 1
