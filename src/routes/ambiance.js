@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Measurement = require('../models/Measurement');
+const { classifyAmbiance, getLegacyStatus } = require('../services/ambiance');
 
 // FUNCTIONS
 /*
@@ -10,16 +11,6 @@ l'ambiance. Ex:
 < 70 --> moderate
 sinon toute autre valeur je retourne noisy\
  */
-const interpreter = (value) => {
-    if(value < 40){
-        return 'quiet';
-    } else if(value < 70){
-        return 'moderate';
-    } else {
-        return 'noisy';
-    }
-}
-
 /*
 Fonction qui parse le query param last
  */
@@ -39,7 +30,15 @@ router.get('/ambiance/:location/status', async (req,res) => {
         if(!measurement){
             return res.status(404).json({error: {code: 404, message: "Aucune donnée pour ce lieu"}})
         }
-        res.status(200).json({location: location, status: interpreter(measurement.value), value: measurement.value, timestamp: measurement.timestamp})
+        const classification = classifyAmbiance(measurement.value, measurement.timestamp);
+        res.status(200).json({
+            location,
+            status: getLegacyStatus(measurement.value),
+            value: measurement.value,
+            timestamp: measurement.timestamp,
+            classification,
+            scale: classification.scale
+        })
 
     } catch(err){
         res.status(500).json({ error: {code: 500, message: err.message} });

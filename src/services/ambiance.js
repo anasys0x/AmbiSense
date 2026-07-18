@@ -1,0 +1,63 @@
+const FRESHNESS_THRESHOLD_MINUTES = 60;
+
+const SCALE = {
+    unit: 'dB',
+    calm: 'moins de 40 dB',
+    moderate: 'de 40 a 69 dB',
+    animated: '70 dB et plus'
+};
+
+const CLASSIFICATIONS = {
+    calm: {
+        code: 'calm',
+        label: 'Calme',
+        description: 'Le niveau sonore permet généralement de se concentrer ou de discuter doucement.'
+    },
+    moderate: {
+        code: 'moderate',
+        label: 'Modéré',
+        description: 'Le lieu présente une activité sonore perceptible, sans être particulièrement bruyant.'
+    },
+    animated: {
+        code: 'animated',
+        label: 'Animé',
+        description: 'Le niveau sonore est élevé et le lieu peut être moins adapté à une activité calme.'
+    }
+};
+
+function getClassificationCode(value) {
+    if (value < 40) {
+        return 'calm';
+    }
+    if (value < 70) {
+        return 'moderate';
+    }
+    return 'animated';
+}
+
+function classifyAmbiance(value, timestamp, now = new Date()) {
+    const code = getClassificationCode(value);
+    const measurementDate = new Date(timestamp);
+    const ageMinutes = (now.getTime() - measurementDate.getTime()) / 60000;
+
+    return {
+        ...CLASSIFICATIONS[code],
+        scale: SCALE,
+        isRecent: ageMinutes >= 0 && ageMinutes <= FRESHNESS_THRESHOLD_MINUTES,
+        freshnessThresholdMinutes: FRESHNESS_THRESHOLD_MINUTES
+    };
+}
+
+function getLegacyStatus(value) {
+    return {
+        calm: 'quiet',
+        moderate: 'moderate',
+        animated: 'noisy'
+    }[getClassificationCode(value)];
+}
+
+module.exports = {
+    classifyAmbiance,
+    getLegacyStatus,
+    FRESHNESS_THRESHOLD_MINUTES
+};
