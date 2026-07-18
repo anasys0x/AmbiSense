@@ -21,9 +21,16 @@ const observationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
+    timestamp: {
+        type: Date,
+        default: Date.now,
+    },
     receivedAt: {
         type: Date,
         default: Date.now,
+    },
+    deviceId: {
+        type: String,
     }
 });
 

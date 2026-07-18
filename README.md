@@ -1,12 +1,12 @@
 # AmbiSense
 
-AmbiSense est une application IFT3225 qui collecte des mesures sonores et présente l'ambiance interprétée de lieux publics. La phase 2 ajoute une API descriptive, des comptes utilisateurs et une application React avec carte, portraits de lieux et soumission d'observations.
+AmbiSense est le projet IFT3225 de collecte et de consultation d'ambiances sonores. La phase 2 poursuit le dépôt de la phase 1 : l'API Express/MongoDB demeure compatible avec les dispositifs de collecte et un client React permet maintenant de consulter la carte, les lieux et son compte, puis d'ajouter des observations.
 
 ## Prérequis
 
 - Node.js 18 ou plus récent
 - MongoDB Atlas ou une instance MongoDB accessible
-- Deux terminaux : un pour l'API et un pour le client React
+- phyphox pour effectuer les collectes réelles
 
 ## Installation
 
@@ -17,7 +17,15 @@ npm install
 copy .env.example .env
 ```
 
-Renseigner ensuite `MONGO_URI` et `JWT_SECRET` dans `.env`.
+Configurer ensuite `.env` sans publier ses valeurs :
+
+```env
+MONGO_URI=mongodb+srv://...
+PORT=1234
+JWT_SECRET=une-longue-valeur-aleatoire
+REMOTE_ACCESS=http://adresse-ip-du-telephone:8080
+API_KEY=cle-api-du-dispositif
+```
 
 Installer le client :
 
@@ -27,123 +35,112 @@ npm install
 copy .env.example .env
 ```
 
-`client/.env` contient l'adresse publique de l'API :
+Le fichier `client/.env` doit pointer vers l'API :
 
 ```env
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:1234
 ```
 
 ## Lancement
 
-Terminal 1, à la racine :
+Utiliser des terminaux séparés.
+
+API, depuis la racine :
 
 ```bash
 npm run dev
 ```
 
-Terminal 2 :
+Client React :
 
 ```bash
-cd client
-npm run dev
+npm --prefix client run dev
 ```
 
-Ouvrir ensuite l'adresse affichée par Vite, normalement `http://localhost:5173`.
+Le client est normalement accessible sur `http://localhost:5173`.
+
+Pour une collecte phyphox, démarrer l'accès à distance dans l'application mobile, configurer `REMOTE_ACCESS` et `API_KEY`, puis lancer :
+
+```bash
+npm run bridge
+```
 
 ## Authentification
 
-AmbiSense conserve deux mécanismes distincts :
+Deux mécanismes coexistent :
 
-- `x-api-key` authentifie un dispositif de collecte de la phase 1;
-- `Authorization: Bearer <jeton>` authentifie un compte humain de la phase 2.
+- `x-api-key` identifie un dispositif de collecte;
+- `Authorization: Bearer <jeton>` identifie un compte utilisateur.
 
-Dans l'interface, utiliser **Créer un compte**, puis **Ajouter une observation**. Le jeton JWT est conservé dans `localStorage`, validé avec `GET /users/me` au chargement et envoyé uniquement aux actions protégées.
+Le JWT est créé par l'API lors de l'inscription ou de la connexion. Le client le conserve et l'envoie automatiquement pour les actions protégées. Il ne faut donc pas générer de JWT manuellement pour utiliser le frontend.
 
 ## Endpoints principaux
-
-### Phase 1 préservée
 
 | Méthode | Endpoint | Protection | Description |
 |---|---|---|---|
 | `POST` | `/devices` | Publique | Créer un dispositif et recevoir sa clé API |
 | `GET` | `/devices` | Publique | Lister les dispositifs sans exposer leurs clés |
-| `POST` | `/measurements` | `x-api-key` | Enregistrer une mesure sonore |
+| `GET` | `/devices/me` | Clé API | Consulter le dispositif courant |
+| `POST` | `/measurements` | Clé API | Enregistrer une mesure sonore |
 | `POST` | `/observations` | Clé API ou JWT | Enregistrer une observation |
-| `GET` | `/ambiance/:location/status` | Publique | Lire l'ambiance actuelle |
-| `GET` | `/ambiance/:location/history?last=3h` | Publique | Lire l'historique existant |
-
-Le champ historique `status` reste présent. La réponse du statut ajoute `classification`, `scale`, `isRecent` et le seuil de fraîcheur de 60 minutes.
-
-### Phase 2
-
-| Méthode | Endpoint | Protection | Description |
-|---|---|---|---|
-| `GET` | `/places` | Publique | Lieux, coordonnées et ambiance actuelle |
-| `GET` | `/places/:slug` | Publique | Portrait actuel d'un lieu |
-| `POST` | `/places` | `x-api-key` | Ajouter un lieu avec ses coordonnées |
+| `GET` | `/ambiance/:location/status` | Publique | Lire l'ambiance actuelle et sa classification |
+| `GET` | `/ambiance/:location/history?last=3` | Publique | Lire les dernières heures de mesures |
+| `GET` | `/ambiance/:location/quiet-hours` | Publique | Calculer les heures généralement les plus calmes |
+| `GET` | `/ambiance/:location/vibe` | Publique | Résumer les dernières observations humaines |
+| `GET` | `/places` | Publique | Lister les lieux, coordonnées et ambiances |
+| `GET` | `/places/:slug` | Publique | Consulter le portrait d'un lieu |
+| `POST` | `/places` | Clé API | Ajouter un lieu avec ses coordonnées |
 | `POST` | `/users` | Publique | Créer un compte |
 | `POST` | `/users/login` | Publique | Se connecter |
-| `GET` | `/users/me` | JWT | Lire l'identité connectée |
-| `POST` | `/users/logout` | JWT | Révoquer le jeton courant |
-| `GET` | `/users/me/observations` | JWT | Retrouver les observations du compte |
+| `GET` | `/users/me` | JWT | Consulter le compte connecté |
+| `POST` | `/users/logout` | JWT | Se déconnecter |
+| `GET` | `/users/me/observations` | JWT | Consulter ses observations |
 
-Exemple d'ajout d'un lieu après avoir créé un dispositif :
+Exemple d'ajout d'un lieu :
 
 ```bash
-curl -X POST http://localhost:3000/places \
+curl -X POST http://localhost:1234/places \
   -H "Content-Type: application/json" \
   -H "x-api-key: VOTRE_CLE" \
   -d '{"name":"Bibliotheque","slug":"bibliotheque","latitude":45.5017,"longitude":-73.5673}'
 ```
 
-Le champ `name` doit correspondre au champ `location` utilisé dans les mesures pour que l'API rattache le portrait au bon lieu.
+Le champ `name` doit être identique au champ `location` envoyé dans les mesures et observations afin que les données soient rattachées au bon lieu.
+
+## Données de démonstration
+
+Le script suivant ajoute un dispositif, des mesures réparties sur deux jours et quelques observations pour tester les écrans et les endpoints :
+
+```bash
+npm run seed
+```
+
+Ces données artificielles servent au développement. Elles ne remplacent pas les données réelles demandées pour la remise : au moins **12 nouvelles mesures réparties sur 3 lieux différents**, recueillies avec phyphox.
 
 ## Vérification
 
-API :
-
 ```bash
 npm test
-```
-
-Client :
-
-```bash
-cd client
-npm test
-npm run lint
-npm run build
+npm --prefix client test
+npm --prefix client run lint
+npm --prefix client run build
 ```
 
 ## Structure
 
 ```text
 src/
+  bridge/          liaison avec phyphox
   middlewares/     authentification des dispositifs et utilisateurs
   models/          modèles Mongoose
   routes/          endpoints Express
-  services/        connexion MongoDB et classification d'ambiance
+  services/        connexion MongoDB et classification
+scripts/           données de démonstration
 tests/             tests de l'API
-client/
-  src/
-    components/    composants d'affichage réutilisables
-    context/       état d'authentification partagé
-    hooks/         cycle de chargement des données
-    pages/         vues liées aux routes
-    services/      appels isolés vers l'API
+client/src/
+  components/      composants React réutilisables
+  context/         authentification partagée
+  hooks/           chargement des données
+  pages/           écrans de l'application
+  services/        appels vers l'API
 ```
-
-## Données à recueillir
-
-La remise doit contenir au moins **12 nouvelles mesures réparties sur 3 lieux différents**. Le lieu de la phase 1 peut compter parmi les trois.
-
-## Fonctionnalités réservées aux coéquipiers
-
-Quatre tickets indépendants restent volontairement à réaliser :
-
-1. Graphe d'historique dans le portrait d'un lieu.
-2. Calcul serveur et affichage des créneaux calmes.
-3. Persistance et interface des lieux favoris.
-4. Récapitulatif visuel des contributions et des lieux visités dans l'espace compte.
-
-L'endpoint d'historique et `GET /users/me/observations` fournissent déjà les points d'intégration nécessaires aux tickets 1 et 4.

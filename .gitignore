@@ -76,6 +76,11 @@ web_modules/
 
 # dotenv environment variable files
 .env
+.env.*
+!.env.example
+client/.env
+client/.env.*
+!client/.env.example
 .env.development.local
 .env.test.local
 .env.production.local
@@ -141,6 +146,9 @@ dist
 
 # idea file
 .idea/
+
+# Macbook hidden files
+.DS_Store
 
 
 # end

@@ -1,12 +1,14 @@
 {
   "name": "ambisense",
   "version": "1.0.0",
-  "description": "Phase 1 - Projet IFT3225",
+  "description": "Projet IFT3225 - AmbiSense",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "test": "node --test tests/*.test.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "bridge": "node src/bridge/bridge.js",
+    "seed": "node scripts/seed.js"
   },
   "repository": {
     "type": "git",
