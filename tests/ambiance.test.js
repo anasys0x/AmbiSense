@@ -35,3 +35,24 @@ test('expose les libelles, les echelles et la fraicheur', () => {
     assert.equal(stale.isRecent, false);
     assert.equal(recent.freshnessThresholdMinutes, 60);
 });
+
+test('expose les bornes numeriques de l\'echelle pour le graphe', () => {
+    const { SCALE_BANDS } = require('../src/services/ambiance');
+
+    assert.deepEqual(SCALE_BANDS, [
+        { code: 'calm', label: 'Calme', min: null, max: 40 },
+        { code: 'moderate', label: 'Modéré', min: 40, max: 70 },
+        { code: 'animated', label: 'Animé', min: 70, max: null }
+    ]);
+});
+
+test('les bornes numeriques concordent avec la classification', () => {
+    const { classifyAmbiance, SCALE_BANDS } = require('../src/services/ambiance');
+    const now = new Date('2026-07-17T12:00:00.000Z');
+
+    // On verifie que les bornes envoyees au client donnent bien la meme
+    // classification que celle calculee par le serveur
+    assert.equal(classifyAmbiance(SCALE_BANDS[0].max - 1, now, now).code, 'calm');
+    assert.equal(classifyAmbiance(SCALE_BANDS[1].min, now, now).code, 'moderate');
+    assert.equal(classifyAmbiance(SCALE_BANDS[2].min, now, now).code, 'animated');
+});

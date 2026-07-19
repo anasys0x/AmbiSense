@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Measurement = require('../models/Measurement');
 const Observation = require('../models/Observation');
-const { classifyAmbiance, getLegacyStatus } = require('../services/ambiance');
+const { classifyAmbiance, getLegacyStatus, SCALE, SCALE_BANDS } = require('../services/ambiance');
+const { addClient, removeClient } = require('../services/realtime');
 
 const parseLastParam = (last) => {
     const hours = parseInt(last, 10);
@@ -37,6 +38,31 @@ const computeQuietHours = (measurements) => {
     result.sort((first, second) => first.averageValue - second.averageValue);
     return result;
 };
+
+/*
+Bonus temps reel : le client s'abonne ici (SSE) et recoit les nouvelles
+ambiances au fur et a mesure. Avec ?location=<lieu> on ne suit qu'un seul
+lieu, sans le parametre on recoit tout.
+ */
+router.get('/ambiance/stream', (req, res) => {
+    res.set({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive'
+    });
+    res.flushHeaders();
+    res.write(': connecte au flux ambiance\n\n');
+
+    const location = typeof req.query.location === 'string' ? req.query.location : null;
+    const client = addClient(res, location);
+    // Petit ping regulier sinon certains proxys coupent la connexion inactive
+    const keepAlive = setInterval(() => res.write(': ping\n\n'), 25000);
+
+    req.on('close', () => {
+        clearInterval(keepAlive);
+        removeClient(client);
+    });
+});
 
 router.get('/ambiance/:location/status', async (req, res) => {
     try {
@@ -89,7 +115,15 @@ router.get('/ambiance/:location/history', async (req, res) => {
             });
         }
 
-        const meta = { location, count: measurements.length };
+        // On joint l'unite et l'echelle a la reponse : c'est le serveur qui
+        // decrit les seuils, le client ne fait que les afficher.
+        const meta = {
+            location,
+            count: measurements.length,
+            unit: SCALE.unit,
+            scale: SCALE,
+            bands: SCALE_BANDS
+        };
         res.status(200).json({
             location,
             measurements,
@@ -122,6 +156,9 @@ router.get('/ambiance/:location/quiet-hours', async (req, res) => {
             meta: {
                 location,
                 count: measurements.length,
+                unit: SCALE.unit,
+                scale: SCALE,
+                bands: SCALE_BANDS,
                 quietest: quietHours[0]
             }
         });

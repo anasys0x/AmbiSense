@@ -7,6 +7,14 @@ const SCALE = {
     animated: '70 dB et plus'
 };
 
+// Meme echelle que SCALE mais avec des bornes numeriques (null = pas de borne).
+// Le client s'en sert pour dessiner les zones du graphe sans refaire le calcul des seuils.
+const SCALE_BANDS = [
+    { code: 'calm', label: 'Calme', min: null, max: 40 },
+    { code: 'moderate', label: 'Modéré', min: 40, max: 70 },
+    { code: 'animated', label: 'Animé', min: 70, max: null }
+];
+
 const CLASSIFICATIONS = {
     calm: {
         code: 'calm',
@@ -59,5 +67,7 @@ function getLegacyStatus(value) {
 module.exports = {
     classifyAmbiance,
     getLegacyStatus,
-    FRESHNESS_THRESHOLD_MINUTES
+    FRESHNESS_THRESHOLD_MINUTES,
+    SCALE,
+    SCALE_BANDS
 };
