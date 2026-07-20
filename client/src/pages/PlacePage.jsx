@@ -3,11 +3,14 @@ import { Link, useParams } from 'react-router-dom';
 
 import AmbianceBadge from '../components/AmbianceBadge';
 import AsyncState from '../components/AsyncState';
+import FavoriteButton from '../components/FavoriteButton';
+import { useAuth } from '../context/AuthContext';
 import useApi from '../hooks/useApi';
 import { getPlace } from '../services/places';
 
 export default function PlacePage() {
   const { slug } = useParams();
+  const { token } = useAuth();
   const { data, loading, error } = useApi(getPlace, slug);
 
   return (
@@ -16,7 +19,10 @@ export default function PlacePage() {
         <section className="portrait-panel">
           <div className="section-heading">
             <div><p className="eyebrow">Portrait d’ambiance</p><h1>{data.place.name}</h1></div>
-            <AmbianceBadge classification={data.ambiance?.classification} />
+            <div className="portrait-actions">
+              <AmbianceBadge classification={data.ambiance?.classification} />
+              <FavoriteButton place={data.place} token={token} />
+            </div>
           </div>
           {!data.ambiance ? (
             <div className="state-card">Aucune mesure n’a encore été reçue pour ce lieu.</div>
