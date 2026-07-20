@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export async function apiRequest(path, options = {}) {
   const { token, body, headers = {}, ...requestOptions } = options;
@@ -20,7 +20,11 @@ export async function apiRequest(path, options = {}) {
   const data = response.status === 204 ? null : await response.json();
   if (!response.ok) {
     const message = data?.error?.message || `Erreur HTTP ${response.status}`;
-    throw new Error(message);
+    const requestError = new Error(message);
+    // On garde le code HTTP sur l'erreur : les pages peuvent ainsi faire la
+    // difference entre un 404 (pas encore de donnees) et une vraie erreur
+    requestError.status = response.status;
+    throw requestError;
   }
 
   return data;
