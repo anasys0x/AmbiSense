@@ -20,7 +20,7 @@ export default function HistoryPanel({ location }) {
 
   // Un 404 veut juste dire qu'il n'y a aucune mesure sur la periode choisie :
   // on affiche l'etat vide plutot qu'un message d'erreur
-  const noData = error?.status === 404;
+  const noData = error?.status === 404 || data?.meta?.count === 0;
 
   return (
     <section className="portrait-section">
@@ -45,11 +45,13 @@ export default function HistoryPanel({ location }) {
         empty={noData}
         emptyMessage="Aucune mesure sur cette période."
       >
-        {data && (
+        {data && !noData && (
           <>
             <HistoryChart measurements={data.data} meta={data.meta} />
             <p className="text-secondary">
-              {data.meta.count} mesure{data.meta.count > 1 ? 's' : ''} ({data.meta.scale.calm} : calme,{' '}
+              {data.meta.count} tranche{data.meta.count > 1 ? 's' : ''} horaire{data.meta.count > 1 ? 's' : ''},{' '}
+              calculée{data.meta.count > 1 ? 's' : ''} à partir de {data.meta.measurementCount} mesure{data.meta.measurementCount > 1 ? 's' : ''}.{' '}
+              ({data.meta.scale.calm} : calme,{' '}
               {data.meta.scale.moderate} : modéré, {data.meta.scale.animated} : animé)
             </p>
           </>

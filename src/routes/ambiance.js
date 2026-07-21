@@ -5,6 +5,9 @@ const Observation = require('../models/Observation');
 const { classifyAmbiance, getLegacyStatus, SCALE, SCALE_BANDS } = require('../services/ambiance');
 const { addClient, removeClient } = require('../services/realtime');
 
+const HISTORY_INTERVAL_MINUTES = 60;
+const HISTORY_INTERVAL_MS = HISTORY_INTERVAL_MINUTES * 60 * 1000;
+
 const parseLastParam = (last) => {
     const hours = parseInt(last, 10);
     return new Date(Date.now() - hours * 3600000);
@@ -37,6 +40,35 @@ const computeQuietHours = (measurements) => {
 
     result.sort((first, second) => first.averageValue - second.averageValue);
     return result;
+};
+
+const aggregateHistory = (measurements) => {
+    const groups = new Map();
+
+    for (const measurement of measurements) {
+        const timestamp = new Date(measurement.timestamp).getTime();
+        const bucketTimestamp = Math.floor(timestamp / HISTORY_INTERVAL_MS) * HISTORY_INTERVAL_MS;
+        const group = groups.get(bucketTimestamp) || [];
+        group.push(measurement.value);
+        groups.set(bucketTimestamp, group);
+    }
+
+    return [...groups.entries()]
+        .sort(([firstTimestamp], [secondTimestamp]) => firstTimestamp - secondTimestamp)
+        .map(([timestamp, values]) => {
+            const averageValue = Math.round(
+                (values.reduce((total, value) => total + value, 0) / values.length) * 100
+            ) / 100;
+
+            return {
+                timestamp: new Date(timestamp),
+                value: averageValue,
+                averageValue,
+                minValue: Math.min(...values),
+                maxValue: Math.max(...values),
+                count: values.length
+            };
+        });
 };
 
 /*
@@ -109,26 +141,27 @@ router.get('/ambiance/:location/history', async (req, res) => {
             { deviceId: 0, __v: 0, _id: 0, receivedAt: 0 }
         ).sort({ timestamp: 1 });
 
-        if (measurements.length === 0) {
-            return res.status(404).json({
-                error: { code: 404, message: 'Aucune donnée pour ce lieu' }
-            });
-        }
+        const slices = aggregateHistory(measurements);
 
         // On joint l'unite et l'echelle a la reponse : c'est le serveur qui
         // decrit les seuils, le client ne fait que les afficher.
         const meta = {
             location,
-            count: measurements.length,
+            count: slices.length,
+            measurementCount: measurements.length,
             unit: SCALE.unit,
             scale: SCALE,
-            bands: SCALE_BANDS
+            bands: SCALE_BANDS,
+            aggregation: {
+                method: 'average',
+                intervalMinutes: HISTORY_INTERVAL_MINUTES
+            }
         };
         res.status(200).json({
             location,
             measurements,
             count: measurements.length,
-            data: measurements,
+            data: slices,
             meta
         });
     } catch (err) {

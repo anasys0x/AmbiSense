@@ -84,7 +84,7 @@ Le JWT est créé par l'API lors de l'inscription ou de la connexion. Le client 
 | `POST` | `/measurements` | Clé API | Enregistrer une mesure sonore |
 | `POST` | `/observations` | Clé API ou JWT | Enregistrer une observation |
 | `GET` | `/ambiance/:location/status` | Publique | Lire l'ambiance actuelle et sa classification |
-| `GET` | `/ambiance/:location/history?last=3` | Publique | Lire les dernières heures de mesures |
+| `GET` | `/ambiance/:location/history?last=3` | Publique | Lire l'historique agrégé en tranches horaires |
 | `GET` | `/ambiance/:location/quiet-hours` | Publique | Calculer les heures généralement les plus calmes |
 | `GET` | `/ambiance/:location/vibe` | Publique | Résumer les dernières observations humaines |
 | `GET` | `/places` | Publique | Lister les lieux, coordonnées et ambiances |
@@ -113,6 +113,8 @@ curl -X POST http://localhost:1234/places \
 ```
 
 Le champ `name` doit être identique au champ `location` envoyé dans les mesures et observations afin que les données soient rattachées au bon lieu.
+
+L'historique regroupe les mesures en tranches de 60 minutes. Le tableau `data` contient les moyennes utilisées par le graphe, tandis que `measurements` conserve les documents bruts pour compatibilité avec la phase 1. Une période sans mesure retourne `200` avec des tableaux vides et un compteur à zéro.
 
 ## Données de démonstration
 
