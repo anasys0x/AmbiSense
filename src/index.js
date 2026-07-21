@@ -3,7 +3,7 @@ require('dotenv').config();
 const app = require('./app');
 const connectDB = require('./services/mongoose');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 1234;
 
 connectDB().catch((error) => {
     console.error('[AmbiSense] Échec de la connexion MongoDB :', error.message);

@@ -1,7 +1,7 @@
 require('dotenv').config();
 
-const SERVER_URL = `http://localhost:${process.env.PORT || 3000}`;
-const SERVER_URL_DEVICES = `http://localhost:${process.env.PORT || 3000}/devices/me`;
+const SERVER_URL = `http://localhost:${process.env.PORT || 1234}`;
+const SERVER_URL_DEVICES = `http://localhost:${process.env.PORT || 1234}/devices/me`;
 
 const fetchPhyphox = async () => {
     try{
