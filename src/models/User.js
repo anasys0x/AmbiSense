@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema({
         required: true,
         minlength: 8
     },
+    favorites: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Place'
+    }],
     authTokens: [{
         authToken: {
             type: String,

@@ -95,6 +95,13 @@ Le JWT est créé par l'API lors de l'inscription ou de la connexion. Le client 
 | `GET` | `/users/me` | JWT | Consulter le compte connecté |
 | `POST` | `/users/logout` | JWT | Se déconnecter |
 | `GET` | `/users/me/observations` | JWT | Consulter ses observations |
+| `GET` | `/users/me/favorites` | JWT | Consulter ses lieux favoris |
+| `POST` | `/users/me/favorites/:placeId` | JWT | Ajouter un lieu à ses favoris |
+| `DELETE` | `/users/me/favorites/:placeId` | JWT | Retirer un lieu de ses favoris |
+
+L'espace compte présente les observations du compte de la plus récente à la plus ancienne,
+en déduit les lieux visités sans doublons et permet de retirer un lieu favori. Un utilisateur
+connecté peut aussi ajouter ou retirer le lieu courant depuis son portrait d'ambiance.
 
 Exemple d'ajout d'un lieu :
 

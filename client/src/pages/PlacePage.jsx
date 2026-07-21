@@ -3,14 +3,17 @@ import { Link, useParams } from 'react-router-dom';
 
 import AmbianceBadge from '../components/AmbianceBadge';
 import AsyncState from '../components/AsyncState';
+import FavoriteButton from '../components/FavoriteButton';
 import HistoryPanel from '../components/HistoryPanel';
 import QuietHoursPanel from '../components/QuietHoursPanel';
 import useAmbianceStream from '../hooks/useAmbianceStream';
+import { useAuth } from '../context/AuthContext';
 import useApi from '../hooks/useApi';
 import { getPlace } from '../services/places';
 
 export default function PlacePage() {
   const { slug } = useParams();
+  const { token } = useAuth();
   const { data, loading, error } = useApi(getPlace, slug);
   // Derniere mesure poussee par le serveur en direct (bonus SSE) :
   // si elle existe, elle prend le dessus sur la valeur chargee au depart
@@ -22,11 +25,14 @@ export default function PlacePage() {
         <section className="portrait-panel">
           <div className="section-heading">
             <div><p className="eyebrow">Portrait d’ambiance</p><h1>{data.place.name}</h1></div>
-            <AmbianceBadge
-              classification={live
-                ? { code: live.code, label: live.label, isRecent: true }
-                : data.ambiance?.classification}
-            />
+            <div className="portrait-actions">
+              <AmbianceBadge
+                classification={live
+                  ? { code: live.code, label: live.label, isRecent: true }
+                  : data.ambiance?.classification}
+              />
+              <FavoriteButton place={data.place} token={token} />
+            </div>
           </div>
           {!data.ambiance && !live ? (
             <div className="state-card">Aucune mesure n’a encore été reçue pour ce lieu.</div>
