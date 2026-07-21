@@ -47,7 +47,7 @@ export default function HistoryPanel({ location }) {
       >
         {data && !noData && (
           <>
-            <HistoryChart measurements={data.data} meta={data.meta} />
+            <HistoryChart measurements={data.slices || data.data} meta={data.meta} />
             <p className="text-secondary">
               {data.meta.count} tranche{data.meta.count > 1 ? 's' : ''} horaire{data.meta.count > 1 ? 's' : ''},{' '}
               calculée{data.meta.count > 1 ? 's' : ''} à partir de {data.meta.measurementCount} mesure{data.meta.measurementCount > 1 ? 's' : ''}.{' '}

@@ -14,6 +14,7 @@ test('GET /ambiance/:location/history retourne une liste vide avec 200', async (
 
         assert.equal(response.status, 200);
         assert.deepEqual(response.body.data, []);
+        assert.deepEqual(response.body.slices, []);
         assert.equal(response.body.meta.location, 'lieu-sans-mesure');
         assert.equal(response.body.meta.count, 0);
         assert.equal(response.body.meta.measurementCount, 0);
@@ -37,8 +38,9 @@ test('GET /ambiance/:location/history agrège les mesures en tranches horaires',
 
         assert.equal(response.status, 200);
         assert.equal(response.body.measurements.length, 3);
-        assert.equal(response.body.data.length, 2);
-        assert.deepEqual(response.body.data[0], {
+        assert.equal(response.body.data.length, 3);
+        assert.equal(response.body.slices.length, 2);
+        assert.deepEqual(response.body.slices[0], {
             timestamp: '2026-07-21T10:00:00.000Z',
             value: 50,
             averageValue: 50,

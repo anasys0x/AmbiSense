@@ -161,7 +161,8 @@ router.get('/ambiance/:location/history', async (req, res) => {
             location,
             measurements,
             count: measurements.length,
-            data: slices,
+            data: measurements,
+            slices,
             meta
         });
     } catch (err) {
