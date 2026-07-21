@@ -22,14 +22,15 @@ router.post('/observations', observationAuth, async (req, res) => {
             notes,
             timestamp,
             author: req.user ? req.user._id : undefined,
-            deviceId: req.device ? req.device._id.toString() : undefined
+            deviceId: req.device ? req.device._id : undefined
         });
         await observation.save();
 
         const document = observation.toObject();
         res.status(201).json({ ...document, data: document });
     } catch (err) {
-        res.status(500).json({ error: { code: 500, message: err.message } });
+        const status = err.name === 'ValidationError' ? 400 : 500;
+        res.status(status).json({ error: { code: status, message: err.message } });
     }
 });
 

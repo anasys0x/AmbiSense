@@ -8,10 +8,12 @@ const observationSchema = new mongoose.Schema({
     proximity: {
         type: String,
         required: true,
+        enum: ['proche', 'moyenne', 'lointaine', 'near', 'far', 'close'],
     },
     vibe: {
         type: String,
         required: true,
+        enum: ['calme', 'moderee', 'animee', 'calm', 'focused', 'busy', 'noisy'],
     },
     notes: {
         type: String,
@@ -30,7 +32,8 @@ const observationSchema = new mongoose.Schema({
         default: Date.now,
     },
     deviceId: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Device',
     }
 });
 

@@ -30,7 +30,8 @@ router.post('/measurements', auth, async (req, res) => {
         res.status(201).json({ data: measurement });
 
     } catch(err) {
-        res.status(500).json({ error: {code: 500, message: err.message} })
+        const status = err.name === 'ValidationError' ? 400 : 500;
+        res.status(status).json({ error: {code: status, message: err.message} })
     }
 })
 

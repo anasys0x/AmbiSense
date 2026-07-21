@@ -8,6 +8,8 @@ const measurementsSchema = new mongoose.Schema({
     value: {
         type: Number,
         required: true,
+        min: 0,
+        max: 140,
     },
     location: {
         type: String,
@@ -22,9 +24,12 @@ const measurementsSchema = new mongoose.Schema({
         default: Date.now,
     },
     deviceId: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Device',
         required: true,
     }
 });
+
+measurementsSchema.index({ location: 1, timestamp: -1 });
 
 module.exports = mongoose.model('Measurement', measurementsSchema);
