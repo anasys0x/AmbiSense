@@ -9,9 +9,11 @@ const deviceSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    apiKey: {
+    apiKeyHash: {
         type: String,
         required: true,
+        unique: true,
+        index: true,
     },
     createdAt: {
         type: Date,

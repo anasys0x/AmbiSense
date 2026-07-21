@@ -12,6 +12,7 @@ function serializePlace(place) {
         id: place._id,
         name: place.name,
         slug: place.slug,
+        locationKey: place.locationKey || place.name,
         latitude: place.latitude,
         longitude: place.longitude
     };
@@ -40,7 +41,7 @@ router.get('/places', async (req, res) => {
 
         const portraits = await Promise.all(places.map(async (place) => ({
             ...serializePlace(place),
-            ambiance: await getLatestAmbiance(place.name)
+            ambiance: await getLatestAmbiance(place.locationKey || place.name)
         })));
 
         res.status(200).json({ places: portraits });
@@ -58,7 +59,7 @@ router.get('/places/:slug', async (req, res) => {
             });
         }
 
-        const ambiance = await getLatestAmbiance(place.name);
+        const ambiance = await getLatestAmbiance(place.locationKey || place.name);
         res.status(200).json({ place: serializePlace(place), ambiance });
     } catch (error) {
         res.status(500).json({ error: { code: 500, message: error.message } });
@@ -67,7 +68,7 @@ router.get('/places/:slug', async (req, res) => {
 
 router.post('/places', deviceAuth, async (req, res) => {
     try {
-        const { name, slug, latitude, longitude } = req.body;
+        const { name, slug, locationKey, latitude, longitude } = req.body;
         if (!name || !slug || latitude === undefined || longitude === undefined) {
             return res.status(400).json({
                 error: {
@@ -77,7 +78,7 @@ router.post('/places', deviceAuth, async (req, res) => {
             });
         }
 
-        const place = new Place({ name, slug, latitude, longitude });
+        const place = new Place({ name, slug, locationKey: locationKey || name, latitude, longitude });
         await place.save();
         res.status(201).json({ place: serializePlace(place) });
     } catch (error) {

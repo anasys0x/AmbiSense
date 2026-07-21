@@ -14,6 +14,11 @@ const placeSchema = new mongoose.Schema({
         lowercase: true,
         unique: true
     },
+    locationKey: {
+        type: String,
+        trim: true,
+        index: true
+    },
     latitude: {
         type: Number,
         required: true,

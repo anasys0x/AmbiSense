@@ -81,6 +81,8 @@ web_modules/
 client/.env
 client/.env.*
 !client/.env.example
+backups/
+tmp/
 .env.development.local
 .env.test.local
 .env.production.local

@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 
 const Measurement = require('../src/models/Measurement');
 const Observation = require('../src/models/Observation');
+const Device = require('../src/models/Device');
+const Place = require('../src/models/Place');
 
 test('Measurement borne la valeur et référence un Device', () => {
     const valuePath = Measurement.schema.path('value');
@@ -13,6 +15,20 @@ test('Measurement borne la valeur et référence un Device', () => {
     assert.equal(valuePath.options.max, 140);
     assert.equal(devicePath.instance, 'ObjectId');
     assert.equal(devicePath.options.ref, 'Device');
+});
+
+test('Device stocke une empreinte unique plutot que la cle API en clair', () => {
+    const hashPath = Device.schema.path('apiKeyHash');
+    assert.ok(hashPath);
+    assert.equal(hashPath.options.required, true);
+    assert.equal(hashPath.options.unique, true);
+    assert.equal(Device.schema.path('apiKey'), undefined);
+});
+
+test('Place expose une cle de collecte distincte de son nom public', () => {
+    const locationKeyPath = Place.schema.path('locationKey');
+    assert.ok(locationKeyPath);
+    assert.equal(locationKeyPath.options.trim, true);
 });
 
 test('Measurement accepte les bornes et refuse les valeurs hors de 0 à 140 dB', async () => {

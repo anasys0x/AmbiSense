@@ -3,6 +3,7 @@ const router = express.Router();
 const Device = require('../models/Device');
 const crypto = require('crypto');
 const auth = require('../middlewares/auth');
+const { hashApiKey } = require('../middlewares/auth');
 
 // CREATE
 
@@ -13,7 +14,7 @@ router.post('/devices', async (req, res) => {
             return res.status(400).json({ error: {code: 400, message: "Champs 'name' et 'location' requis!" }});
         }
         const apiKey = crypto.randomUUID();
-        const device = new Device({name, location, apiKey});
+        const device = new Device({name, location, apiKeyHash: hashApiKey(apiKey)});
         await device.save();
         res.status(201).json( {data: {id: device._id, apiKey}} );
     } catch(err){
@@ -29,7 +30,7 @@ router.get('/devices/me', auth, async (req, res) => {
 // READ
 router.get('/devices', async (req, res) => {
     try{
-        const devices = await Device.find({}, {apiKey: 0, __v: 0}) // On masque la cle API par mesure de securité.
+        const devices = await Device.find({}, {apiKeyHash: 0, __v: 0})
         res.status(200).json({ data: devices, meta: { count: devices.length } });
     } catch(err){
         res.status(500).json({ error: {code: 500, message: err.message}});
