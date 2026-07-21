@@ -27,6 +27,10 @@ REMOTE_ACCESS=http://adresse-ip-du-telephone:8080
 API_KEY=cle-api-du-dispositif
 ```
 
+Une valeur JWT peut être générée avec `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`.
+La clé API n'est affichée qu'une fois par `POST /devices`; l'API conserve uniquement son empreinte SHA-256.
+Si une valeur a déjà été publiée, il faut la remplacer dans Atlas et dans `.env`, même si le dépôt est privé.
+
 Installer le client :
 
 ```bash
@@ -98,6 +102,7 @@ Le JWT est créé par l'API lors de l'inscription ou de la connexion. Le client 
 | `GET` | `/users/me/favorites` | JWT | Consulter ses lieux favoris |
 | `POST` | `/users/me/favorites/:placeId` | JWT | Ajouter un lieu à ses favoris |
 | `DELETE` | `/users/me/favorites/:placeId` | JWT | Retirer un lieu de ses favoris |
+| `GET` | `/ambiance/stream?location=...` | Publique | Recevoir les classifications en SSE (bonus) |
 
 L'espace compte présente les observations du compte de la plus récente à la plus ancienne,
 en déduit les lieux visités sans doublons et permet de retirer un lieu favori. Un utilisateur
@@ -109,12 +114,26 @@ Exemple d'ajout d'un lieu :
 curl -X POST http://localhost:1234/places \
   -H "Content-Type: application/json" \
   -H "x-api-key: VOTRE_CLE" \
-  -d '{"name":"Bibliotheque","slug":"bibliotheque","latitude":45.5017,"longitude":-73.5673}'
+  -d '{"name":"Bibliotheque","slug":"bibliotheque","locationKey":"biblio_jb","latitude":45.5017,"longitude":-73.5673}'
 ```
 
-Le champ `name` doit être identique au champ `location` envoyé dans les mesures et observations afin que les données soient rattachées au bon lieu.
+`name` est le libellé public. `locationKey` doit correspondre au champ `location` envoyé dans les mesures et observations. Cette séparation permet de corriger un nom affiché sans casser les collecteurs existants. Les anciens lieux sans `locationKey` continuent d'utiliser leur nom comme repli.
 
-L'historique regroupe les mesures en tranches de 60 minutes. Le tableau `data` contient les moyennes utilisées par le graphe, tandis que `measurements` conserve les documents bruts pour compatibilité avec la phase 1. Une période sans mesure retourne `200` avec des tableaux vides et un compteur à zéro.
+L'historique regroupe les mesures en tranches de 60 minutes. Pour ne pas casser la phase 1, `data` et `measurements` contiennent les documents bruts; `slices` contient les moyennes utilisées par le graphe. Chaque tranche expose aussi le minimum, le maximum et le nombre de mesures. Une période sans mesure retourne `200` avec des tableaux vides et un compteur à zéro.
+
+## Collecte réelle et solution de repli
+
+Le bridge lit un échantillon fourni par phyphox toutes les cinq secondes. Il conserve cette valeur ponctuelle au lieu de moyenner arbitrairement un lot côté bridge. Les moyennes utiles à la visualisation sont calculées ensuite par l'historique, avec le nombre, le minimum et le maximum pour garder le contexte.
+
+Flux recommandé pour chacun des trois lieux :
+
+1. créer le dispositif avec `POST /devices` et copier la clé retournée dans `API_KEY`;
+2. créer le lieu avec `POST /places`, ses coordonnées et le même `locationKey` que le collecteur;
+3. démarrer l'accès à distance phyphox et `npm run bridge`;
+4. vérifier la réception dans `/ambiance/:location/status`, puis ajouter au besoin une observation depuis le frontend;
+5. conserver au total au moins 12 nouvelles mesures réelles réparties sur 3 lieux.
+
+Si phyphox est momentanément indisponible, un envoi manuel permet seulement de tester le pipeline : `POST /measurements` avec `type`, `value`, `location` et `timestamp`, ainsi que `x-api-key`. Cette solution de repli doit être identifiée comme manuelle et ne constitue pas une preuve de collecte physique.
 
 ## Données de démonstration
 
@@ -125,6 +144,10 @@ npm run seed
 ```
 
 Ces données artificielles servent au développement. Elles ne remplacent pas les données réelles demandées pour la remise : au moins **12 nouvelles mesures réparties sur 3 lieux différents**, recueillies avec phyphox.
+
+## Sécurité et limite HTTPS
+
+Les mots de passe utilisateurs sont hachés, les comptes utilisent des JWT et les appareils sont recherchés par empreinte de clé. En développement, Express et Vite servent toutefois en HTTP. Pour un déploiement public, il faut terminer TLS devant l'application (par exemple avec un reverse proxy), limiter CORS à l'origine du client et stocker les secrets dans la configuration de l'hébergeur.
 
 ## Vérification
 
