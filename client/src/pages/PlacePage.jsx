@@ -17,7 +17,8 @@ export default function PlacePage() {
   const { data, loading, error } = useApi(getPlace, slug);
   // Derniere mesure poussee par le serveur en direct (bonus SSE) :
   // si elle existe, elle prend le dessus sur la valeur chargee au depart
-  const live = useAmbianceStream(data?.place?.name);
+  const location = data?.place?.locationKey || data?.place?.name;
+  const live = useAmbianceStream(location);
 
   return (
     <AsyncState loading={loading} error={error}>
@@ -55,8 +56,8 @@ export default function PlacePage() {
               </p>
             </>
           )}
-          <HistoryPanel location={data.place.name} />
-          <QuietHoursPanel location={data.place.name} />
+          <HistoryPanel location={location} />
+          <QuietHoursPanel location={location} />
           <Link to="/carte">← Retour à la carte</Link>
         </section>
       )}

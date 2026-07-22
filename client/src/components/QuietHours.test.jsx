@@ -35,6 +35,14 @@ describe('QuietHours', () => {
     expect(screen.getByText('55.4 dB')).toBeInTheDocument();
   });
 
+  it('nomme clairement les trois colonnes', () => {
+    render(<QuietHours hours={HOURS} meta={META} />);
+
+    expect(screen.getByText('Heure de la journée')).toBeInTheDocument();
+    expect(screen.getByText('Niveau relatif')).toBeInTheDocument();
+    expect(screen.getByText('Moyenne')).toBeInTheDocument();
+  });
+
   it('colore les barres selon ambiance calculee par le serveur', () => {
     const { container } = render(<QuietHours hours={HOURS} meta={META} />);
 

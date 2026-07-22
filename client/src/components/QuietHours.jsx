@@ -23,6 +23,11 @@ export default function QuietHours({ hours, meta }) {
           {' '}({quietest.averageValue} {unit} en moyenne, {quietest.count} mesure{quietest.count > 1 ? 's' : ''})
         </p>
       )}
+      <div className="quiet-list-header" aria-label="Colonnes des créneaux calmes">
+        <span>Heure de la journée</span>
+        <span>Niveau relatif</span>
+        <span>Moyenne</span>
+      </div>
       <ul className="quiet-list">
         {hours.map((slot) => (
           <li key={slot.hour} className={quietest && slot.hour === quietest.hour ? 'quiet-best' : ''}>
