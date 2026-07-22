@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import AsyncState from './AsyncState';
 import HistoryChart from './HistoryChart';
 import useApi from '../hooks/useApi';
+import useAmbianceStream from '../hooks/useAmbianceStream';
 import { getHistory } from '../services/ambiance';
 
 // Choix de periodes pour l'historique (en heures, le format attendu par ?last=)
@@ -13,10 +14,25 @@ const PERIODS = [
   { last: '', label: 'Tout' }
 ];
 
+export function selectHistoryPoints(data) {
+  if (!data) return [];
+  return data.slices || data.data || [];
+}
+
 export default function HistoryPanel({ location }) {
   const [last, setLast] = useState('24');
   const fetchHistory = useCallback((place) => getHistory(place, last), [last]);
-  const { data, loading, error } = useApi(fetchHistory, location);
+  const { data, loading, error, reload } = useApi(fetchHistory, location);
+  const live = useAmbianceStream(location);
+  const hasLiveMeasurement = Boolean(live);
+
+  useEffect(() => {
+    if (!hasLiveMeasurement || last !== '3') return undefined;
+
+    reload();
+    const refreshInterval = setInterval(reload, 30000);
+    return () => clearInterval(refreshInterval);
+  }, [hasLiveMeasurement, last, reload]);
 
   // Un 404 veut juste dire qu'il n'y a aucune mesure sur la periode choisie :
   // on affiche l'etat vide plutot qu'un message d'erreur
@@ -40,16 +56,17 @@ export default function HistoryPanel({ location }) {
         </div>
       </div>
       <AsyncState
-        loading={loading}
+        loading={loading && !data}
         error={noData ? null : error}
         empty={noData}
         emptyMessage="Aucune mesure sur cette période."
       >
         {data && !noData && (
           <>
-            <HistoryChart measurements={data.slices || data.data} meta={data.meta} />
+            <HistoryChart measurements={selectHistoryPoints(data)} meta={data.meta} />
             <p className="text-secondary">
-              {data.meta.count} tranche{data.meta.count > 1 ? 's' : ''} horaire{data.meta.count > 1 ? 's' : ''},{' '}
+              {data.meta.count} tranche{data.meta.count > 1 ? 's' : ''} de{' '}
+              {data.meta.aggregation.intervalMinutes} minute{data.meta.aggregation.intervalMinutes > 1 ? 's' : ''},{' '}
               calculée{data.meta.count > 1 ? 's' : ''} à partir de {data.meta.measurementCount} mesure{data.meta.measurementCount > 1 ? 's' : ''}.{' '}
               ({data.meta.scale.calm} : calme,{' '}
               {data.meta.scale.moderate} : modéré, {data.meta.scale.animated} : animé)

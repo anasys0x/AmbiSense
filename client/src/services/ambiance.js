@@ -1,8 +1,11 @@
 import { apiRequest } from './api';
 
 export function getHistory(location, last) {
-  const query = last ? `?last=${encodeURIComponent(last)}` : '';
-  return apiRequest(`/ambiance/${encodeURIComponent(location)}/history${query}`);
+  const params = new URLSearchParams();
+  if (last) params.set('last', last);
+  params.set('summary', 'true');
+
+  return apiRequest(`/ambiance/${encodeURIComponent(location)}/history?${params.toString()}`);
 }
 
 export function getQuietHours(location) {

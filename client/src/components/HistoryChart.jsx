@@ -24,16 +24,45 @@ const formatTime = (timestamp) => new Date(timestamp).toLocaleTimeString('fr-CA'
 
 const formatFullDate = (timestamp) => new Date(timestamp).toLocaleString('fr-CA');
 
-export default function HistoryChart({ measurements, meta }) {
-  const points = measurements.map((measurement) => ({
-    timestamp: new Date(measurement.timestamp).getTime(),
-    value: measurement.value
-  }));
+const MAX_CONTINUOUS_GAP_MS = 90 * 60 * 1000;
 
-  const maxValue = Math.max(...points.map((point) => point.value), 80);
+export function buildChartPoints(measurements) {
+  const ordered = measurements
+    .map((measurement) => ({
+      timestamp: new Date(measurement.timestamp).getTime(),
+      value: measurement.value
+    }))
+    .sort((first, second) => first.timestamp - second.timestamp);
+
+  return ordered.reduce((points, point, index) => {
+    const previous = ordered[index - 1];
+    if (previous && point.timestamp - previous.timestamp > MAX_CONTINUOUS_GAP_MS) {
+      points.push({
+        timestamp: previous.timestamp + ((point.timestamp - previous.timestamp) / 2),
+        value: null
+      });
+    }
+    points.push(point);
+    return points;
+  }, []);
+}
+
+export function shouldShowDots(points) {
+  return points.length > 0 && points.length <= 100;
+}
+
+export default function HistoryChart({ measurements, meta }) {
+  const points = buildChartPoints(measurements);
+  const measuredPoints = points.filter((point) => point.value !== null);
+  const singlePoint = measuredPoints.length === 1;
+
+  const maxValue = Math.max(...measuredPoints.map((point) => point.value), 80);
   const yMax = Math.ceil((maxValue + 10) / 10) * 10;
   const bands = meta?.bands || [];
   const unit = meta?.unit || 'dB';
+  const xDomain = singlePoint
+    ? [measuredPoints[0].timestamp - 1800000, measuredPoints[0].timestamp + 1800000]
+    : ['dataMin', 'dataMax'];
 
   return (
     <div className="history-chart" role="img" aria-label={`Évolution du niveau sonore en ${unit}`}>
@@ -55,7 +84,7 @@ export default function HistoryChart({ measurements, meta }) {
           <XAxis
             dataKey="timestamp"
             type="number"
-            domain={['dataMin', 'dataMax']}
+            domain={xDomain}
             tickFormatter={formatTime}
             fontSize={12}
           />
@@ -68,9 +97,21 @@ export default function HistoryChart({ measurements, meta }) {
             labelFormatter={(timestamp) => formatFullDate(Number(timestamp))}
             formatter={(value) => [`${value} ${unit}`, 'Niveau sonore']}
           />
-          <Line type="monotone" dataKey="value" stroke="#1c77c3" strokeWidth={2} dot={false} />
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke="#1c77c3"
+            strokeWidth={2}
+            dot={shouldShowDots(measuredPoints)
+              ? { r: singlePoint ? 5 : 2.5, fill: '#1c77c3' }
+              : false}
+            connectNulls={false}
+          />
         </LineChart>
       </ResponsiveContainer>
+      {singlePoint && (
+        <p className="history-single-point">Une seule tranche est disponible dans cette période.</p>
+      )}
     </div>
   );
 }

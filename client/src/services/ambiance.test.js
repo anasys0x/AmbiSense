@@ -17,6 +17,7 @@ describe('services ambiance', () => {
     await getHistory('biblio_jb', '24');
 
     expect(fetchMock.mock.calls[0][0]).toContain('/ambiance/biblio_jb/history?last=24');
+    expect(fetchMock.mock.calls[0][0]).toContain('summary=true');
   });
 
   it('omet le parametre last quand aucune periode nest choisie', async () => {
@@ -30,6 +31,7 @@ describe('services ambiance', () => {
 
     expect(fetchMock.mock.calls[0][0]).toContain('/ambiance/biblio_jb/history');
     expect(fetchMock.mock.calls[0][0]).not.toContain('last=');
+    expect(fetchMock.mock.calls[0][0]).toContain('summary=true');
   });
 
   it('expose le code HTTP sur les erreurs pour distinguer les etats vides', async () => {

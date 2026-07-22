@@ -5,8 +5,8 @@ const Observation = require('../models/Observation');
 const { classifyAmbiance, getLegacyStatus, SCALE, SCALE_BANDS } = require('../services/ambiance');
 const { addClient, removeClient } = require('../services/realtime');
 
-const HISTORY_INTERVAL_MINUTES = 60;
-const HISTORY_INTERVAL_MS = HISTORY_INTERVAL_MINUTES * 60 * 1000;
+const DEFAULT_HISTORY_INTERVAL_MINUTES = 60;
+const SHORT_HISTORY_INTERVAL_MINUTES = 5;
 
 const parseLastParam = (last) => {
     const hours = parseInt(last, 10);
@@ -42,12 +42,17 @@ const computeQuietHours = (measurements) => {
     return result;
 };
 
-const aggregateHistory = (measurements) => {
+const getHistoryIntervalMinutes = (last) => (
+    String(last) === '3' ? SHORT_HISTORY_INTERVAL_MINUTES : DEFAULT_HISTORY_INTERVAL_MINUTES
+);
+
+const aggregateHistory = (measurements, intervalMinutes) => {
     const groups = new Map();
+    const intervalMilliseconds = intervalMinutes * 60 * 1000;
 
     for (const measurement of measurements) {
         const timestamp = new Date(measurement.timestamp).getTime();
-        const bucketTimestamp = Math.floor(timestamp / HISTORY_INTERVAL_MS) * HISTORY_INTERVAL_MS;
+        const bucketTimestamp = Math.floor(timestamp / intervalMilliseconds) * intervalMilliseconds;
         const group = groups.get(bucketTimestamp) || [];
         group.push(measurement.value);
         groups.set(bucketTimestamp, group);
@@ -129,7 +134,7 @@ router.get('/ambiance/:location/status', async (req, res) => {
 router.get('/ambiance/:location/history', async (req, res) => {
     try {
         const { location } = req.params;
-        const { last } = req.query;
+        const { last, summary } = req.query;
         const filter = { location };
 
         if (last) {
@@ -141,7 +146,8 @@ router.get('/ambiance/:location/history', async (req, res) => {
             { deviceId: 0, __v: 0, _id: 0, receivedAt: 0 }
         ).sort({ timestamp: 1 });
 
-        const slices = aggregateHistory(measurements);
+        const intervalMinutes = getHistoryIntervalMinutes(last);
+        const slices = aggregateHistory(measurements, intervalMinutes);
 
         // On joint l'unite et l'echelle a la reponse : c'est le serveur qui
         // decrit les seuils, le client ne fait que les afficher.
@@ -154,17 +160,25 @@ router.get('/ambiance/:location/history', async (req, res) => {
             bands: SCALE_BANDS,
             aggregation: {
                 method: 'average',
-                intervalMinutes: HISTORY_INTERVAL_MINUTES
+                intervalMinutes
             }
         };
-        res.status(200).json({
+        const response = {
             location,
-            measurements,
             count: measurements.length,
-            data: measurements,
             slices,
             meta
-        });
+        };
+
+        // Le contrat historique reste inchangé par défaut. Le client web peut
+        // demander uniquement les tranches afin de ne pas transférer toutes
+        // les mesures brutes dans les longues périodes.
+        if (summary !== 'true') {
+            response.measurements = measurements;
+            response.data = measurements;
+        }
+
+        res.status(200).json(response);
     } catch (err) {
         res.status(500).json({ error: { code: 500, message: err.message } });
     }
