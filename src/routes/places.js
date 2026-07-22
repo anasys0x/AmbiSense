@@ -1,6 +1,7 @@
 const express = require('express');
 
 const Measurement = require('../models/Measurement');
+const Observation = require('../models/Observation');
 const Place = require('../models/Place');
 const deviceAuth = require('../middlewares/auth');
 const { classifyAmbiance, getLegacyStatus } = require('../services/ambiance');
@@ -34,15 +35,62 @@ async function getLatestAmbiance(location) {
     };
 }
 
+async function getLatestObservation(place) {
+    const observation = await Observation.findOne({
+        location: { $in: [place.locationKey || place.name, place.name] }
+    }).sort({ timestamp: -1 });
+
+    if (!observation) return null;
+
+    return {
+        notes: observation.notes,
+        vibe: observation.vibe,
+        proximity: observation.proximity,
+        timestamp: observation.timestamp || observation.receivedAt
+    };
+}
+
+async function getRecentAverage(location) {
+    const now = new Date();
+    const since = new Date(now.getTime() - 30 * 60 * 1000);
+    const [average] = await Measurement.aggregate([
+        { $match: { location, timestamp: { $gte: since, $lte: now } } },
+        { $group: { _id: null, averageValue: { $avg: '$value' }, count: { $sum: 1 } } }
+    ]);
+
+    if (!average) return null;
+
+    return {
+        value: Math.round(average.averageValue * 100) / 100,
+        count: average.count,
+        periodMinutes: 30
+    };
+}
+
 router.get('/places', async (req, res) => {
     try {
         const places = await Place.find({});
         places.sort((first, second) => first.name.localeCompare(second.name));
 
-        const portraits = await Promise.all(places.map(async (place) => ({
-            ...serializePlace(place),
-            ambiance: await getLatestAmbiance(place.locationKey || place.name)
-        })));
+        const includePreview = req.query.preview === 'true';
+        const portraits = await Promise.all(places.map(async (place) => {
+            const location = place.locationKey || place.name;
+            const portrait = {
+                ...serializePlace(place),
+                ambiance: await getLatestAmbiance(location)
+            };
+
+            if (includePreview) {
+                const [latestObservation, recentAverage] = await Promise.all([
+                    getLatestObservation(place),
+                    getRecentAverage(location)
+                ]);
+                portrait.latestObservation = latestObservation;
+                portrait.recentAverage = recentAverage;
+            }
+
+            return portrait;
+        }));
 
         res.status(200).json({ places: portraits });
     } catch (error) {
