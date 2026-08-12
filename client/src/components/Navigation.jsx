@@ -12,6 +12,7 @@ export default function Navigation() {
       <div className="navbar-nav ms-auto align-items-md-center gap-md-2">
         <NavLink className="nav-link" to="/">Accueil</NavLink>
         <NavLink className="nav-link" to="/carte">Carte</NavLink>
+        <NavLink className="nav-link" to="/recommandations">Recommandations</NavLink>
         {!loading && !user && <NavLink className="nav-link" to="/connexion">Connexion</NavLink>}
         {!loading && !user && <NavLink className="btn btn-outline-light btn-sm" to="/inscription">Créer un compte</NavLink>}
         {!loading && user && <NavLink className="nav-link" to="/compte">Mon compte</NavLink>}

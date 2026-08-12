@@ -10,6 +10,7 @@ import MapPage from './pages/MapPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ObservationFormPage from './pages/ObservationFormPage';
 import PlacePage from './pages/PlacePage';
+import RecommendationPage from './pages/RecommendationPage';
 import RegisterPage from './pages/RegisterPage';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/carte" element={<MapPage />} />
+        <Route path="/recommandations" element={<RecommendationPage />} />
         <Route path="/lieux/:slug" element={<PlacePage />} />
         <Route path="/connexion" element={<LoginPage />} />
         <Route path="/inscription" element={<RegisterPage />} />
