@@ -11,6 +11,7 @@ app.use(require('./routes/observations'));
 app.use(require('./routes/ambiance'));
 app.use(require('./routes/places'));
 app.use(require('./routes/users'));
+app.use(require('./routes/recommendations'));
 
 app.use((req, res) => {
     res.status(404).json({
