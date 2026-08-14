@@ -152,6 +152,8 @@ dist
 # Macbook hidden files
 .DS_Store
 
+# Notes locales pour la redaction du rapport
+/notes/maintenabilite-phase-3.md
 
 # end
 
