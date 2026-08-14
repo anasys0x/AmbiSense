@@ -56,3 +56,28 @@ test('les bornes numeriques concordent avec la classification', () => {
     assert.equal(classifyAmbiance(SCALE_BANDS[1].min, now, now).code, 'moderate');
     assert.equal(classifyAmbiance(SCALE_BANDS[2].min, now, now).code, 'animated');
 });
+
+test('une mesure datee dans le futur n\'est pas consideree recente', () => {
+    const { classifyAmbiance } = require('../src/services/ambiance');
+    const now = new Date('2026-07-17T12:00:00.000Z');
+    // Horloge d'un telephone en avance : on refuse de la marquer "recente".
+    const futureTimestamp = new Date('2026-07-17T12:30:00.000Z');
+
+    assert.equal(classifyAmbiance(45, futureTimestamp, now).isRecent, false);
+});
+
+test('une mesure pile au seuil de fraicheur (60 min) reste recente', () => {
+    const { classifyAmbiance } = require('../src/services/ambiance');
+    const now = new Date('2026-07-17T12:00:00.000Z');
+    const exactlySixtyMinutes = new Date('2026-07-17T11:00:00.000Z');
+
+    assert.equal(classifyAmbiance(45, exactlySixtyMinutes, now).isRecent, true);
+});
+
+test('getLegacyStatus traduit chaque classification vers le vocabulaire phase 1', () => {
+    const { getLegacyStatus } = require('../src/services/ambiance');
+
+    assert.equal(getLegacyStatus(20), 'quiet');   // calme
+    assert.equal(getLegacyStatus(55), 'moderate'); // modere
+    assert.equal(getLegacyStatus(90), 'noisy');    // anime
+});
