@@ -64,9 +64,26 @@ function getLegacyStatus(value) {
     }[getClassificationCode(value)];
 }
 
+function summarizeObservations(observations) {
+    const countValues = (items, key) => items.reduce((counts, item) => {
+        counts[item[key]] = (counts[item[key]] || 0) + 1;
+        return counts;
+    }, {});
+    const dominant = (counts) => Object.keys(counts).reduce((first, second) => (
+        counts[first] > counts[second] ? first : second
+    ));
+
+    return {
+        dominantVibe: dominant(countValues(observations, 'vibe')),
+        dominantProximity: dominant(countValues(observations, 'proximity')),
+        lastNote: observations[0].notes
+    };
+}
+
 module.exports = {
     classifyAmbiance,
     getLegacyStatus,
+    summarizeObservations,
     FRESHNESS_THRESHOLD_MINUTES,
     SCALE,
     SCALE_BANDS

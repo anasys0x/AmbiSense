@@ -1,6 +1,21 @@
 const { classifyAmbiance } = require('./ambiance');
 
 const VALID_AMBIANCES = ['calm', 'moderate', 'animated'];
+const DEFAULT_TIMEZONE = 'America/Toronto';
+
+function parseRecommendationCriteria(query, timezone = process.env.APP_TIMEZONE || DEFAULT_TIMEZONE) {
+    const ambiance = query.ambiance;
+    const hour = Number(query.hour);
+
+    if (!VALID_AMBIANCES.includes(ambiance)) {
+        throw new RangeError('ambiance doit être calm, moderate ou animated');
+    }
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+        throw new RangeError('hour doit être un entier de 0 à 23');
+    }
+
+    return { ambiance, hour, timezone };
+}
 
 function rankingMetric(code, averageValue) {
     if (code === 'calm') return averageValue;
@@ -66,7 +81,26 @@ function rankRecommendations(places, aggregates, desiredAmbiance, hour) {
         }));
 }
 
+function buildRecommendationResponse(places, aggregates, criteria) {
+    return {
+        data: rankRecommendations(places, aggregates, criteria.ambiance, criteria.hour),
+        meta: {
+            desiredAmbiance: criteria.ambiance,
+            hour: criteria.hour,
+            timezone: criteria.timezone,
+            unit: 'dB',
+            totalMeasurements: aggregates.reduce(
+                (total, aggregate) => total + aggregate.sampleCount,
+                0
+            )
+        }
+    };
+}
+
 module.exports = {
+    buildRecommendationResponse,
+    DEFAULT_TIMEZONE,
+    parseRecommendationCriteria,
     VALID_AMBIANCES,
     rankRecommendations
 };

@@ -2,79 +2,20 @@ const express = require('express');
 const router = express.Router();
 const Measurement = require('../models/Measurement');
 const Observation = require('../models/Observation');
-const { classifyAmbiance, getLegacyStatus, SCALE, SCALE_BANDS } = require('../services/ambiance');
+const {
+    classifyAmbiance,
+    getLegacyStatus,
+    SCALE,
+    SCALE_BANDS,
+    summarizeObservations
+} = require('../services/ambiance');
+const {
+    aggregateHistory,
+    computeQuietHours,
+    getHistoryIntervalMinutes,
+    parseLastParam
+} = require('../services/ambianceHistory');
 const { addClient, removeClient } = require('../services/realtime');
-
-const DEFAULT_HISTORY_INTERVAL_MINUTES = 60;
-const SHORT_HISTORY_INTERVAL_MINUTES = 5;
-
-const parseLastParam = (last) => {
-    const hours = parseInt(last, 10);
-    return new Date(Date.now() - hours * 3600000);
-};
-
-const computeQuietHours = (measurements) => {
-    const groups = {};
-
-    for (const measurement of measurements) {
-        const hour = new Date(measurement.timestamp).getHours();
-        if (!groups[hour]) {
-            groups[hour] = [];
-        }
-        groups[hour].push(measurement.value);
-    }
-
-    const result = Object.keys(groups).map((hour) => {
-        const values = groups[hour];
-        const averageValue = Math.round(
-            (values.reduce((total, value) => total + value, 0) / values.length) * 100
-        ) / 100;
-
-        return {
-            hour: Number(hour),
-            averageValue,
-            ambiance: getLegacyStatus(averageValue),
-            count: values.length,
-        };
-    });
-
-    result.sort((first, second) => first.averageValue - second.averageValue);
-    return result;
-};
-
-const getHistoryIntervalMinutes = (last) => (
-    String(last) === '3' ? SHORT_HISTORY_INTERVAL_MINUTES : DEFAULT_HISTORY_INTERVAL_MINUTES
-);
-
-const aggregateHistory = (measurements, intervalMinutes) => {
-    const groups = new Map();
-    const intervalMilliseconds = intervalMinutes * 60 * 1000;
-
-    for (const measurement of measurements) {
-        const timestamp = new Date(measurement.timestamp).getTime();
-        const bucketTimestamp = Math.floor(timestamp / intervalMilliseconds) * intervalMilliseconds;
-        const group = groups.get(bucketTimestamp) || [];
-        group.push(measurement.value);
-        groups.set(bucketTimestamp, group);
-    }
-
-    return [...groups.entries()]
-        .sort(([firstTimestamp], [secondTimestamp]) => firstTimestamp - secondTimestamp)
-        .map(([timestamp, values]) => {
-            const averageValue = Math.round(
-                (values.reduce((total, value) => total + value, 0) / values.length) * 100
-            ) / 100;
-
-            return {
-                timestamp: new Date(timestamp),
-                value: averageValue,
-                averageValue,
-                minValue: Math.min(...values),
-                maxValue: Math.max(...values),
-                count: values.length
-            };
-        });
-};
 
 /*
 Bonus temps reel : le client s'abonne ici (SSE) et recoit les nouvelles
@@ -229,20 +170,12 @@ router.get('/ambiance/:location/vibe', async (req, res) => {
             });
         }
 
-        const countValues = (items, key) => items.reduce((counts, item) => {
-            counts[item[key]] = (counts[item[key]] || 0) + 1;
-            return counts;
-        }, {});
-        const dominant = (counts) => Object.keys(counts).reduce((first, second) => (
-            counts[first] > counts[second] ? first : second
-        ));
+        const summary = summarizeObservations(observations);
 
         res.status(200).json({
             data: {
                 location,
-                dominantVibe: dominant(countValues(observations, 'vibe')),
-                dominantProximity: dominant(countValues(observations, 'proximity')),
-                lastNote: observations[0].notes
+                ...summary
             },
             meta: { basedOn: observations.length }
         });
