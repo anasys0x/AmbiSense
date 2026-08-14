@@ -67,6 +67,43 @@ test('le service privilegie une ambiance moderee proche du centre de sa plage', 
     assert.match(result[0].explanation, /12 h/);
 });
 
+test('le service valide et normalise les criteres de recommandation', () => {
+    const { parseRecommendationCriteria } = require('../src/services/recommendations');
+
+    assert.deepEqual(parseRecommendationCriteria({ ambiance: 'calm', hour: '14' }), {
+        ambiance: 'calm',
+        hour: 14,
+        timezone: 'America/Toronto'
+    });
+    assert.throws(
+        () => parseRecommendationCriteria({ ambiance: 'inconnue', hour: '14' }),
+        /ambiance/
+    );
+    assert.throws(
+        () => parseRecommendationCriteria({ ambiance: 'calm', hour: '25' }),
+        /hour/
+    );
+});
+
+test('le service construit toute la reponse metier hors de la route', () => {
+    const { buildRecommendationResponse } = require('../src/services/recommendations');
+    const aggregates = [
+        { _id: 'biblio_sciences_humaines', averageValue: 36.2, sampleCount: 12 }
+    ];
+    const criteria = { ambiance: 'calm', hour: 14, timezone: 'America/Toronto' };
+
+    const response = buildRecommendationResponse(places, aggregates, criteria);
+
+    assert.equal(response.data[0].place.slug, 'bibliotheque-sciences-humaines');
+    assert.deepEqual(response.meta, {
+        desiredAmbiance: 'calm',
+        hour: 14,
+        timezone: 'America/Toronto',
+        unit: 'dB',
+        totalMeasurements: 12
+    });
+});
+
 test('GET /recommendations valide les criteres', async () => {
     const invalidAmbiance = await request(app).get('/recommendations?ambiance=inconnue&hour=12');
     const invalidHour = await request(app).get('/recommendations?ambiance=calm&hour=25');

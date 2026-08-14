@@ -56,3 +56,18 @@ test('les bornes numeriques concordent avec la classification', () => {
     assert.equal(classifyAmbiance(SCALE_BANDS[1].min, now, now).code, 'moderate');
     assert.equal(classifyAmbiance(SCALE_BANDS[2].min, now, now).code, 'animated');
 });
+
+test('resume les observations sans exposer le calcul dans la route', () => {
+    const { summarizeObservations } = require('../src/services/ambiance');
+    const observations = [
+        { vibe: 'animee', proximity: 'proche', notes: 'Beaucoup de conversations' },
+        { vibe: 'animee', proximity: 'moyenne', notes: 'Musique presente' },
+        { vibe: 'calme', proximity: 'proche', notes: 'Zone plus calme' }
+    ];
+
+    assert.deepEqual(summarizeObservations(observations), {
+        dominantVibe: 'animee',
+        dominantProximity: 'proche',
+        lastNote: 'Beaucoup de conversations'
+    });
+});
