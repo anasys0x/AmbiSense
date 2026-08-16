@@ -1,13 +1,20 @@
 import { apiRequest } from './api';
 
-export function getPlaces() {
-  return apiRequest('/places');
+// Les mesures en direct continuent d'arriver par SSE. Ce TTL court evite les
+// appels repetes pendant la navigation sans conserver longtemps un portrait.
+const PUBLIC_DATA_TTL = 30_000;
+
+export function getPlaces(options = {}) {
+  return apiRequest('/places', { cacheTtl: PUBLIC_DATA_TTL, ...options });
 }
 
-export function getMapPlaces() {
-  return apiRequest('/places?preview=true');
+export function getMapPlaces(options = {}) {
+  return apiRequest('/places?preview=true', { cacheTtl: PUBLIC_DATA_TTL, ...options });
 }
 
-export function getPlace(slug) {
-  return apiRequest(`/places/${encodeURIComponent(slug)}`);
+export function getPlace(slug, options = {}) {
+  return apiRequest(`/places/${encodeURIComponent(slug)}`, {
+    cacheTtl: PUBLIC_DATA_TTL,
+    ...options
+  });
 }

@@ -21,7 +21,10 @@ export function selectHistoryPoints(data) {
 
 export default function HistoryPanel({ location }) {
   const [last, setLast] = useState('24');
-  const fetchHistory = useCallback((place) => getHistory(place, last), [last]);
+  const fetchHistory = useCallback(
+    (place, requestOptions) => getHistory(place, last, requestOptions),
+    [last]
+  );
   const { data, loading, error, reload } = useApi(fetchHistory, location);
   const live = useAmbianceStream(location);
   const hasLiveMeasurement = Boolean(live);
