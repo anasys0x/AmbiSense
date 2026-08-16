@@ -173,7 +173,7 @@ L'API se déploie sur [Render](https://render.com) comme service web Node. Le fi
 
 Adresses en ligne (à compléter après déploiement) :
 
-- API : `https://<à-compléter>.onrender.com`
+- API : `https://ambisense.onrender.com`
 - Client : `https://<à-compléter>.onrender.com`
 
 > Sur le plan gratuit, le service s'endort après inactivité : la première requête peut prendre quelques secondes à réveiller l'instance.
