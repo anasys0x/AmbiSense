@@ -5,6 +5,7 @@ const Measurement = require('../models/Measurement');
 const Device = require('../models/Device');
 const { classifyAmbiance } = require('../services/ambiance');
 const { publishAmbiance } = require('../services/realtime');
+const { invalidateOnNewMeasurement } = require('../services/cache');
 
 router.post('/measurements', auth, async (req, res) => {
     try{
@@ -14,6 +15,11 @@ router.post('/measurements', auth, async (req, res) => {
         }
         const measurement = new Measurement({ type, value, location, timestamp, deviceId: req.device._id })
         await measurement.save();
+
+        // La mesure change l'historique, les creneaux calmes et les recommandations
+        // de ce lieu : on vide les entrees de cache concernees pour ne pas servir
+        // une reponse perimee au prochain visiteur.
+        invalidateOnNewMeasurement(measurement.location);
 
         // Des que la mesure est enregistree, on previent les clients connectes
         // au flux SSE avec la nouvelle ambiance (bonus temps reel)
