@@ -133,6 +133,12 @@ a { color: #1266a9; }
 .portrait-section h2 { font-size: 1.35rem; }
 .period-picker { display: flex; gap: .35rem; }
 .history-chart { margin-top: 1rem; }
+.history-chart-scroll { overflow-x: auto; }
+.history-chart-svg { display: block; width: 100%; min-width: 600px; height: auto; }
+.history-chart-grid { stroke: #dce8f0; stroke-dasharray: 3 3; }
+.history-chart-axis-label, .history-chart-band-label { fill: #526579; font-size: 12px; }
+.history-chart-band-label { font-size: 11px; }
+.history-chart-axis-title { fill: #526579; font-size: 12px; font-weight: 700; }
 .history-single-point { margin-top: -.35rem; color: var(--ink-muted); font-size: .88rem; }
 .quiet-highlight { padding: .8rem 1.1rem; background: #eef8f4; border: 1px solid #bfe5da; border-radius: .6rem; }
 .quiet-list-header { display: grid; grid-template-columns: 8.2rem 1fr 5.8rem; gap: .6rem; margin: 1rem 0 .35rem; color: var(--midnight); font-size: .76rem; font-weight: 800; }
