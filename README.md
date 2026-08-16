@@ -178,6 +178,11 @@ Adresses en ligne (à compléter après déploiement) :
 
 > Sur le plan gratuit, le service s'endort après inactivité : la première requête peut prendre quelques secondes à réveiller l'instance.
 
+## Performance frontend
+
+La mesure du build, l'optimisation appliquée et la comparaison avant/après sont
+documentées dans [`docs/performance-frontend.md`](docs/performance-frontend.md).
+
 ## Vérification
 
 ```bash
