@@ -16,6 +16,7 @@ const {
     parseLastParam
 } = require('../services/ambianceHistory');
 const { addClient, removeClient } = require('../services/realtime');
+const { cache, CACHE_PREFIX, CACHE_TTL_MS } = require('../services/cache');
 
 /*
 Bonus temps reel : le client s'abonne ici (SSE) et recoit les nouvelles
@@ -76,6 +77,15 @@ router.get('/ambiance/:location/history', async (req, res) => {
     try {
         const { location } = req.params;
         const { last, summary } = req.query;
+
+        // Cache : une meme periode demandee par plusieurs visiteurs est resservie
+        // sans relire MongoDB. La cle distingue le lieu, la periode et le format.
+        const cacheKey = `${CACHE_PREFIX.history}${location}:${last || ''}:${summary || ''}`;
+        const cached = cache.get(cacheKey);
+        if (cached) {
+            return res.status(200).json(cached);
+        }
+
         const filter = { location };
 
         if (last) {
@@ -119,6 +129,7 @@ router.get('/ambiance/:location/history', async (req, res) => {
             response.data = measurements;
         }
 
+        cache.set(cacheKey, response, CACHE_TTL_MS.history);
         res.status(200).json(response);
     } catch (err) {
         res.status(500).json({ error: { code: 500, message: err.message } });
@@ -128,19 +139,30 @@ router.get('/ambiance/:location/history', async (req, res) => {
 router.get('/ambiance/:location/quiet-hours', async (req, res) => {
     try {
         const { location } = req.params;
+
+        // Les creneaux calmes sont une moyenne sur tout l'historique du lieu :
+        // couteux a recalculer, stable dans le temps -> bon candidat au cache.
+        const cacheKey = `${CACHE_PREFIX.quietHours}${location}`;
+        const cached = cache.get(cacheKey);
+        if (cached) {
+            return res.status(200).json(cached);
+        }
+
         const measurements = await Measurement.find(
             { location },
             { value: 1, timestamp: 1, _id: 0 }
         );
 
         if (measurements.length === 0) {
+            // On ne met pas le 404 en cache : des qu'une mesure arrivera, la
+            // reponse changera. Seul le succes est memorise.
             return res.status(404).json({
                 error: { code: 404, message: 'Aucune donnée pour ce lieu' }
             });
         }
 
         const quietHours = computeQuietHours(measurements);
-        res.status(200).json({
+        const payload = {
             data: quietHours,
             meta: {
                 location,
@@ -150,7 +172,10 @@ router.get('/ambiance/:location/quiet-hours', async (req, res) => {
                 bands: SCALE_BANDS,
                 quietest: quietHours[0]
             }
-        });
+        };
+
+        cache.set(cacheKey, payload, CACHE_TTL_MS.quietHours);
+        res.status(200).json(payload);
     } catch (err) {
         res.status(500).json({ error: { code: 500, message: err.message } });
     }
