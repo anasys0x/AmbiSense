@@ -11,7 +11,12 @@ export default function useApi(apiFunction, param) {
     setLoading(true);
     setError(null);
 
-    apiFunction(param)
+    const requestOptions = { forceRefresh: reloadKey > 0 };
+    const request = param === undefined
+      ? apiFunction(requestOptions)
+      : apiFunction(param, requestOptions);
+
+    request
       .then((result) => {
         if (!cancelled) setData(result);
       })
