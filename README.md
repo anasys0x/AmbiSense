@@ -149,6 +149,35 @@ Ces données artificielles servent au développement. Elles ne remplacent pas le
 
 Les mots de passe utilisateurs sont hachés, les comptes utilisent des JWT et les appareils sont recherchés par empreinte de clé. En développement, Express et Vite servent toutefois en HTTP. Pour un déploiement public, il faut terminer TLS devant l'application (par exemple avec un reverse proxy), limiter CORS à l'origine du client et stocker les secrets dans la configuration de l'hébergeur.
 
+## Cache (backend)
+
+Les lectures publiques coûteuses sont mises en cache en mémoire (`src/services/cache.js`) pour éviter de recalculer la même réponse à chaque visiteur :
+
+| Donnée | Clé | Durée de vie | Invalidation |
+|---|---|---|---|
+| Historique `/ambiance/:location/history` | `history:<lieu>:<période>:<format>` | 1 min | Nouvelle mesure du lieu |
+| Créneaux calmes `/ambiance/:location/quiet-hours` | `quiet-hours:<lieu>` | 5 min | Nouvelle mesure du lieu |
+| Recommandations `/recommendations` | `recommendations:<ambiance>:<heure>` | 5 min | Toute nouvelle mesure |
+
+Une nouvelle mesure (`POST /measurements`) vide immédiatement les entrées concernées. **Ne sont jamais mis en cache** : les écritures (`POST`), l'authentification et les comptes, ni le flux SSE `GET /ambiance/stream` (temps réel par nature).
+
+## Déploiement (Render)
+
+L'API se déploie sur [Render](https://render.com) comme service web Node. Le fichier [`render.yaml`](render.yaml) décrit le service (build, démarrage, route de santé, variables).
+
+1. Créer un **Web Service** relié au dépôt (ou « New + » → « Blueprint » pour lire `render.yaml`).
+2. Build command : `npm install` — Start command : `npm start`.
+3. Variables d'environnement (onglet *Environment*, jamais dans le code) : `MONGO_URI`, `JWT_SECRET`, `CLIENT_ORIGIN` (URL du frontend déployé), `APP_TIMEZONE`. Render fournit `PORT` automatiquement ; le serveur écoute `process.env.PORT`.
+4. Dans MongoDB Atlas, autoriser l'accès réseau depuis Render (`0.0.0.0/0` ou les IP de sortie de Render).
+5. Health check : `/health`. Vérifier ensuite une route publique (`/health`, `/places`) et une route protégée (`/users/me` avec un JWT).
+
+Adresses en ligne (à compléter après déploiement) :
+
+- API : `https://<à-compléter>.onrender.com`
+- Client : `https://<à-compléter>.onrender.com`
+
+> Sur le plan gratuit, le service s'endort après inactivité : la première requête peut prendre quelques secondes à réveiller l'instance.
+
 ## Vérification
 
 ```bash

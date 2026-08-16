@@ -1,0 +1,27 @@
+# Blueprint Render pour l'API AmbiSense.
+# Render lit ce fichier pour créer/mettre à jour le service automatiquement.
+# Les secrets (MONGO_URI, JWT_SECRET...) NE sont PAS ici : on les saisit dans le
+# tableau de bord Render (sync: false), jamais dans le dépôt.
+services:
+  - type: web
+    name: ambisense-api
+    runtime: node
+    plan: free
+    # Le code de l'API est à la racine du dépôt (le client React est dans /client).
+    rootDir: .
+    buildCommand: npm install
+    startCommand: npm start
+    # Render appelle cette route pour vérifier que le service est en vie.
+    healthCheckPath: /health
+    envVars:
+      # Render fournit lui-même PORT : notre serveur écoute process.env.PORT.
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      # Origine(s) du frontend déployé, pour restreindre CORS. Ex :
+      # https://ambisense-client.onrender.com
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: APP_TIMEZONE
+        value: America/Toronto
