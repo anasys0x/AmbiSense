@@ -1,10 +1,18 @@
 # AmbiSense
 
-AmbiSense est le projet IFT3225 de collecte et de consultation d'ambiances sonores. La phase 2 poursuit le dépôt de la phase 1 : l'API Express/MongoDB demeure compatible avec les dispositifs de collecte et un client React permet maintenant de consulter la carte, les lieux et son compte, puis d'ajouter des observations.
+AmbiSense est le projet IFT3225 de collecte et de consultation d'ambiances sonores. La phase 3 consolide l'application développée aux phases précédentes : elle ajoute des recommandations par ambiance et par heure, améliore la séparation des responsabilités, couvre les services par des tests, introduit des caches frontend et backend, optimise le chargement du client et déploie l'ensemble sur Render.
+
+## Application en ligne
+
+- Client React : [https://ambisense-client.onrender.com](https://ambisense-client.onrender.com)
+- API Express : [https://ambisense-api.onrender.com](https://ambisense-api.onrender.com)
+- Santé de l'API : [https://ambisense-api.onrender.com/health](https://ambisense-api.onrender.com/health)
+
+Les deux applications sont servies en HTTPS. Le client utilise l'URL publique de l'API et l'API limite CORS à l'origine du client déployé.
 
 ## Prérequis
 
-- Node.js 18 ou plus récent
+- Node.js 20.19 ou plus récent (ou Node.js 22.12+)
 - MongoDB Atlas ou une instance MongoDB accessible
 - phyphox pour effectuer les collectes réelles
 
@@ -14,7 +22,18 @@ AmbiSense est le projet IFT3225 de collecte et de consultation d'ambiances sonor
 
 ```bash
 npm install
+```
+
+Créer ensuite le fichier d'environnement à partir de l'exemple :
+
+```powershell
+# Windows (PowerShell ou invite de commandes)
 copy .env.example .env
+```
+
+```bash
+# macOS ou Linux
+cp .env.example .env
 ```
 
 Configurer ensuite `.env` sans publier ses valeurs :
@@ -36,7 +55,18 @@ Installer le client :
 ```bash
 cd client
 npm install
+```
+
+Créer ensuite le fichier d'environnement du client :
+
+```powershell
+# Windows (PowerShell ou invite de commandes)
 copy .env.example .env
+```
+
+```bash
+# macOS ou Linux
+cp .env.example .env
 ```
 
 Le fichier `client/.env` doit pointer vers l'API :
@@ -87,6 +117,7 @@ Le JWT est créé par l'API lors de l'inscription ou de la connexion. Le client 
 | `GET` | `/devices/me` | Clé API | Consulter le dispositif courant |
 | `POST` | `/measurements` | Clé API | Enregistrer une mesure sonore |
 | `POST` | `/observations` | Clé API ou JWT | Enregistrer une observation |
+| `GET` | `/health` | Publique | Vérifier que l'API déployée répond |
 | `GET` | `/ambiance/:location/status` | Publique | Lire l'ambiance actuelle et sa classification |
 | `GET` | `/ambiance/:location/history?last=3` | Publique | Lire l'historique agrégé en tranches horaires |
 | `GET` | `/ambiance/:location/quiet-hours` | Publique | Calculer les heures généralement les plus calmes |
@@ -102,6 +133,7 @@ Le JWT est créé par l'API lors de l'inscription ou de la connexion. Le client 
 | `GET` | `/users/me/favorites` | JWT | Consulter ses lieux favoris |
 | `POST` | `/users/me/favorites/:placeId` | JWT | Ajouter un lieu à ses favoris |
 | `DELETE` | `/users/me/favorites/:placeId` | JWT | Retirer un lieu de ses favoris |
+| `GET` | `/recommendations?ambiance=calm&hour=14` | Publique | Classer les lieux selon l'ambiance et l'heure souhaitées |
 | `GET` | `/ambiance/stream?location=...` | Publique | Recevoir les classifications en SSE (bonus) |
 
 L'espace compte présente les observations du compte de la plus récente à la plus ancienne,
@@ -119,7 +151,7 @@ curl -X POST http://localhost:1234/places \
 
 `name` est le libellé public. `locationKey` doit correspondre au champ `location` envoyé dans les mesures et observations. Cette séparation permet de corriger un nom affiché sans casser les collecteurs existants. Les anciens lieux sans `locationKey` continuent d'utiliser leur nom comme repli.
 
-L'historique regroupe les mesures en tranches de 60 minutes. Pour ne pas casser la phase 1, `data` et `measurements` contiennent les documents bruts; `slices` contient les moyennes utilisées par le graphe. Chaque tranche expose aussi le minimum, le maximum et le nombre de mesures. Une période sans mesure retourne `200` avec des tableaux vides et un compteur à zéro.
+L'historique regroupe les mesures en tranches de 5 minutes pour la période de 3 heures et de 60 minutes pour les périodes plus longues. Pour ne pas casser la phase 1, `data` et `measurements` contiennent les documents bruts; `slices` contient les moyennes utilisées par le graphe. Chaque tranche expose aussi le minimum, le maximum et le nombre de mesures. Une période sans mesure retourne `200` avec des tableaux vides et un compteur à zéro.
 
 ## Collecte réelle et solution de repli
 
@@ -145,11 +177,11 @@ npm run seed
 
 Ces données artificielles servent au développement. Elles ne remplacent pas les données réelles demandées pour la remise : au moins **12 nouvelles mesures réparties sur 3 lieux différents**, recueillies avec phyphox.
 
-## Sécurité et limite HTTPS
+## Sécurité et HTTPS
 
-Les mots de passe utilisateurs sont hachés, les comptes utilisent des JWT et les appareils sont recherchés par empreinte de clé. En développement, Express et Vite servent toutefois en HTTP. Pour un déploiement public, il faut terminer TLS devant l'application (par exemple avec un reverse proxy), limiter CORS à l'origine du client et stocker les secrets dans la configuration de l'hébergeur.
+Les mots de passe utilisateurs sont hachés, les comptes utilisent des JWT et les appareils sont recherchés par empreinte de clé. En local, Express et Vite servent en HTTP. En production, Render termine TLS pour les deux adresses HTTPS, CORS est limité par `CLIENT_ORIGIN` et les secrets sont stockés dans les variables d'environnement de l'hébergeur.
 
-## Cache (backend)
+## Cache backend
 
 Les lectures publiques coûteuses sont mises en cache en mémoire (`src/services/cache.js`) pour éviter de recalculer la même réponse à chaque visiteur :
 
@@ -161,9 +193,17 @@ Les lectures publiques coûteuses sont mises en cache en mémoire (`src/services
 
 Une nouvelle mesure (`POST /measurements`) vide immédiatement les entrées concernées. **Ne sont jamais mis en cache** : les écritures (`POST`), l'authentification et les comptes, ni le flux SSE `GET /ambiance/stream` (temps réel par nature).
 
-## Déploiement (Render)
+## Cache frontend
 
-L'API se déploie sur [Render](https://render.com) comme service web Node. Le fichier [`render.yaml`](render.yaml) décrit le service (build, démarrage, route de santé, variables).
+Le client conserve pendant 30 secondes les lectures publiques de lieux, d'historique, de créneaux calmes et de recommandations. Le cache est une `Map` en mémoire : il disparaît lorsque l'onglet est fermé et ne place aucune donnée dans `localStorage` ou `sessionStorage`.
+
+La clé correspond à l'URL complète de la requête. Une entrée est supprimée à son expiration, un rechargement explicite ignore la copie, et une observation enregistrée avec succès vide les lectures publiques qui pourraient être devenues anciennes. Les requêtes authentifiées, les comptes, les favoris, les écritures et les réponses en erreur ne sont jamais mis en cache.
+
+## Déploiement sur Render
+
+### Backend
+
+L'API est déployée comme service web Node. Le fichier [`render.yaml`](render.yaml) décrit sa construction, son démarrage, sa route de santé et ses variables.
 
 1. Créer un **Web Service** relié au dépôt (ou « New + » → « Blueprint » pour lire `render.yaml`).
 2. Build command : `npm install` — Start command : `npm start`.
@@ -171,10 +211,20 @@ L'API se déploie sur [Render](https://render.com) comme service web Node. Le fi
 4. Dans MongoDB Atlas, autoriser l'accès réseau depuis Render (`0.0.0.0/0` ou les IP de sortie de Render).
 5. Health check : `/health`. Vérifier ensuite une route publique (`/health`, `/places`) et une route protégée (`/users/me` avec un JWT).
 
-Adresses en ligne (à compléter après déploiement) :
+### Frontend
 
-- API : `https://ambisense-api.onrender.com`
-- Client : `https://ambisense-client.onrender.com`
+Le dossier `client/` est déployé comme site statique Render :
+
+- répertoire racine : `client`;
+- commande de construction : `npm install && npm run build`;
+- répertoire publié : `dist`;
+- variable de construction : `VITE_API_URL=https://ambisense-api.onrender.com`;
+- réécriture : `/*` vers `/index.html` pour conserver les routes React lors d'un accès direct.
+
+Adresses en ligne vérifiées :
+
+- API : [https://ambisense-api.onrender.com](https://ambisense-api.onrender.com)
+- Client : [https://ambisense-client.onrender.com](https://ambisense-client.onrender.com)
 
 > Sur le plan gratuit, le service s'endort après inactivité : la première requête peut prendre quelques secondes à réveiller l'instance.
 
@@ -199,8 +249,9 @@ src/
   bridge/          liaison avec phyphox
   middlewares/     authentification des dispositifs et utilisateurs
   models/          modèles Mongoose
+  repositories/    accès aux données des recommandations
   routes/          endpoints Express
-  services/        connexion MongoDB et classification
+  services/        logique métier, agrégation, cache et connexion MongoDB
 scripts/           données de démonstration
 tests/             tests de l'API
 client/src/
